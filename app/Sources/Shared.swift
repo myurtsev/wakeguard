@@ -1,31 +1,28 @@
-import Foundation
-
-public enum WakePaths {
-    public static let appName = "WakeGuard"
-    public static let helperProtocol = 5
-    public static let bundleID = "nl.local.WakeGuard"
-    public static let directory = "/var/db/nl.local.WakeGuard"
-    public static let config = directory + "/config.json"
-    public static let lease = directory + "/lease.json"
-    public static let status = directory + "/status.json"
-    public static let marker = directory + "/owns-sleep"
-    public static let audit = directory + "/audit.json"
-    public static let history = directory + "/history.json"
-    public static let helper = "/Library/PrivilegedHelperTools/nl.local.WakeGuard.helper"
-    public static let label = "nl.local.WakeGuard"
-    public static let plist = "/Library/LaunchDaemons/nl.local.WakeGuard.plist"
-    public static let installedApp = "/Applications/WakeGuard.app"
+enum WakePaths {
+    static let helperProtocol = 5
+    static let bundleID = "nl.local.WakeGuard"
+    static let directory = "/var/db/nl.local.WakeGuard"
+    static let config = directory + "/config.json"
+    static let lease = directory + "/lease.json"
+    static let status = directory + "/status.json"
+    static let marker = directory + "/owns-sleep"
+    static let audit = directory + "/audit.json"
+    static let history = directory + "/history.json"
+    static let helper = "/Library/PrivilegedHelperTools/nl.local.WakeGuard.helper"
+    static let label = "nl.local.WakeGuard"
+    static let plist = "/Library/LaunchDaemons/nl.local.WakeGuard.plist"
+    static let installedApp = "/Applications/WakeGuard.app"
 }
 
-public struct WakeSettings: Codable, Equatable {
-    public var onAC: Bool
-    public var onBattery: Bool
-    public var batteryFloor: Int
-    public var darkenDisplays: Bool
-    public var sessionMinutes: Int
+struct WakeSettings: Codable, Equatable {
+    var onAC: Bool
+    var onBattery: Bool
+    var batteryFloor: Int
+    var darkenDisplays: Bool
+    var sessionMinutes: Int
 
-    public init(onAC: Bool = true, onBattery: Bool = false, batteryFloor: Int = 20,
-                darkenDisplays: Bool = true, sessionMinutes: Int = 60) {
+    init(onAC: Bool = true, onBattery: Bool = false, batteryFloor: Int = 20,
+         darkenDisplays: Bool = true, sessionMinutes: Int = 60) {
         self.onAC = onAC
         self.onBattery = onBattery
         self.batteryFloor = batteryFloor
@@ -34,19 +31,19 @@ public struct WakeSettings: Codable, Equatable {
     }
 }
 
-public struct WakeRequest: Codable {
-    public var generation: String
-    public var session: String
-    public var sequence: UInt64
-    public var enabled: Bool
-    public var issuedAt: Double
-    public var settings: WakeSettings
-    public var uninstall: Bool
-    public var sleepAfterAgents: Bool?
+struct WakeRequest: Codable {
+    var generation: String
+    var session: String
+    var sequence: UInt64
+    var enabled: Bool
+    var issuedAt: Double
+    var settings: WakeSettings
+    var uninstall: Bool
+    var sleepAfterAgents: Bool?
 
-    public init(generation: String, session: String, sequence: UInt64, enabled: Bool,
-                issuedAt: Double, settings: WakeSettings, uninstall: Bool = false,
-                sleepAfterAgents: Bool? = nil) {
+    init(generation: String, session: String, sequence: UInt64, enabled: Bool,
+         issuedAt: Double, settings: WakeSettings, uninstall: Bool = false,
+         sleepAfterAgents: Bool? = nil) {
         self.generation = generation
         self.session = session
         self.sequence = sequence
@@ -58,28 +55,28 @@ public struct WakeRequest: Codable {
     }
 }
 
-public struct HelperStatus: Codable {
-    public var generation: String
-    public var session: String?
-    public var mode: String
-    public var reason: String
-    public var onAC: Bool?
-    public var battery: Int?
-    public var thermal: String
-    public var owned: Bool
-    public var remainingSeconds: Int?
-    public var updatedAt: Double
-    public var installerUID: UInt32
-    public var protocolVersion: Int?
-    public var lidClosed: Bool?
-    public var latestSummaryID: String?
-    public var auditError: String?
+struct HelperStatus: Codable {
+    var generation: String
+    var session: String?
+    var mode: String
+    var reason: String
+    var onAC: Bool?
+    var battery: Int?
+    var thermal: String
+    var owned: Bool
+    var remainingSeconds: Int?
+    var updatedAt: Double
+    var installerUID: UInt32
+    var protocolVersion: Int?
+    var lidClosed: Bool?
+    var latestSummaryID: String?
+    var auditError: String?
 
-    public init(generation: String, session: String?, mode: String, reason: String,
-                onAC: Bool?, battery: Int?, thermal: String, owned: Bool,
-                remainingSeconds: Int?, updatedAt: Double, installerUID: UInt32,
-                protocolVersion: Int? = WakePaths.helperProtocol, lidClosed: Bool? = nil,
-                latestSummaryID: String? = nil, auditError: String? = nil) {
+    init(generation: String, session: String?, mode: String, reason: String,
+         onAC: Bool?, battery: Int?, thermal: String, owned: Bool,
+         remainingSeconds: Int?, updatedAt: Double, installerUID: UInt32,
+         protocolVersion: Int? = WakePaths.helperProtocol, lidClosed: Bool? = nil,
+         latestSummaryID: String? = nil, auditError: String? = nil) {
         self.generation = generation
         self.session = session
         self.mode = mode
@@ -98,38 +95,28 @@ public struct HelperStatus: Codable {
     }
 }
 
-public struct InstallConfig: Codable {
-    public var uid: UInt32
-
-    public init(uid: UInt32) {
-        self.uid = uid
-    }
+struct InstallConfig: Codable {
+    var uid: UInt32
 }
 
-public enum ThermalLevel: String, Codable {
+enum ThermalLevel: String, Codable {
     case nominal, fair, serious, critical, unknown
 }
 
-public struct PowerSample {
-    public var onAC: Bool?
-    public var battery: Int?
-    public var thermal: ThermalLevel
-
-    public init(onAC: Bool?, battery: Int?, thermal: ThermalLevel) {
-        self.onAC = onAC
-        self.battery = battery
-        self.thermal = thermal
-    }
+struct PowerSample {
+    var onAC: Bool?
+    var battery: Int?
+    var thermal: ThermalLevel
 }
 
-public enum PolicyDecision: Equatable {
+enum PolicyDecision: Equatable {
     case hold
     case pause(String)
     case stop(String)
 }
 
-public enum WakePolicy {
-    public static func evaluate(settings: WakeSettings, power: PowerSample) -> PolicyDecision {
+enum WakePolicy {
+    static func evaluate(settings: WakeSettings, power: PowerSample) -> PolicyDecision {
         guard [20, 30, 40].contains(settings.batteryFloor),
               [0, 30, 60, 120].contains(settings.sessionMinutes) else {
             return .stop("Invalid settings")
@@ -150,7 +137,7 @@ public enum WakePolicy {
         return settings.onBattery ? .hold : .pause("Battery use disabled")
     }
 
-    public static func isFresh(_ request: WakeRequest, generation: String, now: Double) -> Bool {
+    static func isFresh(_ request: WakeRequest, generation: String, now: Double) -> Bool {
         guard request.generation == generation, !request.session.isEmpty,
               request.session.utf8.count <= 64, request.issuedAt.isFinite, now.isFinite else {
             return false

@@ -4,7 +4,7 @@ import CoreFoundation
 
 struct CodexRolloutParser {
     let sessionID: String
-    let writerStartedAt: Double
+    private let writerStartedAt: Double
     private let sessionTime: UInt64
     private(set) var turnID: String?
     private(set) var state: AgentState = .unknown
@@ -114,14 +114,14 @@ struct CodexRolloutParser {
     }
 }
 
-public final class CodexActivityReader {
+final class CodexActivityReader {
     private struct Identity: Hashable {
         let pid: pid_t
         let startedAt: Double
         let executable: String
     }
     private struct OpenFile {
-        var pid: pid_t = 0
+        let pid: pid_t
         var writable: Bool?
         var regular = false
         var inode: UInt64?
@@ -130,7 +130,7 @@ public final class CodexActivityReader {
     }
     private struct Cache {
         let path: String
-        var writer: Identity
+        let writer: Identity
         var parser: CodexRolloutParser
         var offset: off_t
         var size: off_t
@@ -144,9 +144,7 @@ public final class CodexActivityReader {
     private let sessions = FileManager.default.homeDirectoryForCurrentUser.path + "/.codex/sessions/"
     private let maximumRead = 8 * 1024 * 1024
 
-    public init() {}
-
-    public func snapshot() -> AgentSnapshot {
+    func snapshot() -> AgentSnapshot {
         let now = Date().timeIntervalSince1970
         var unknown = 0
         var current: [String: AgentObservation] = [:]

@@ -1,44 +1,44 @@
 import Foundation
 
-public struct AuditEvent: Codable, Equatable {
-    public var id: String
-    public var at: Double
-    public var kind: String
-    public var mode: String
-    public var reason: String
-    public var session: String?
-    public var verifiedAwake: Bool
-    public var lidClosed: Bool?
-    public var onAC: Bool?
-    public var battery: Int?
-    public var thermal: String
-    public var durationSeconds: Double?
+struct AuditEvent: Codable, Equatable {
+    var id: String
+    var at: Double
+    var kind: String
+    var mode: String
+    var reason: String
+    var session: String?
+    var verifiedAwake: Bool
+    var lidClosed: Bool?
+    var onAC: Bool?
+    var battery: Int?
+    var thermal: String
+    var durationSeconds: Double?
 }
 
-public struct LidSummary: Codable, Equatable {
-    public var id: String
-    public var closedAt: Double
-    public var openedAt: Double?
-    public var closedSeconds: Double
-    public var protectedAwakeSeconds: Double
-    public var sleepingSeconds: Double
-    public var unprotectedAwakeSeconds: Double
-    public var unknownSeconds: Double
-    public var lastStopReason: String?
-    public var incomplete: Bool
+struct LidSummary: Codable, Equatable {
+    var id: String
+    var closedAt: Double
+    var openedAt: Double?
+    var closedSeconds: Double
+    var protectedAwakeSeconds: Double
+    var sleepingSeconds: Double
+    var unprotectedAwakeSeconds: Double
+    var unknownSeconds: Double
+    var lastStopReason: String?
+    var incomplete: Bool
 }
 
-public struct AuditHistory: Codable, Equatable {
-    public var schema: Int = 1
-    public var generation: String
-    public var updatedAt: Double
-    public var retentionAnchor: Double
-    public var events: [AuditEvent]
-    public var summaries: [LidSummary]
-    public var current: LidSummary?
+struct AuditHistory: Codable, Equatable {
+    var schema: Int = 1
+    var generation: String
+    var updatedAt: Double
+    var retentionAnchor: Double
+    var events: [AuditEvent]
+    var summaries: [LidSummary]
+    var current: LidSummary?
 
-    public init(generation: String, updatedAt: Double, events: [AuditEvent] = [],
-                summaries: [LidSummary] = [], current: LidSummary? = nil) {
+    init(generation: String, updatedAt: Double, events: [AuditEvent] = [],
+         summaries: [LidSummary] = [], current: LidSummary? = nil) {
         self.generation = generation
         self.updatedAt = updatedAt
         retentionAnchor = updatedAt
@@ -47,12 +47,12 @@ public struct AuditHistory: Codable, Equatable {
         self.current = current
     }
 
-    public func includesSummary(_ id: String?) -> Bool {
+    func includesSummary(_ id: String?) -> Bool {
         guard let id else { return true }
         return summaries.contains { $0.id == id }
     }
 
-    public func shouldPresentSummary(_ summary: LidSummary) -> Bool {
+    func shouldPresentSummary(_ summary: LidSummary) -> Bool {
         guard let openedAt = summary.openedAt else { return false }
         if summary.protectedAwakeSeconds > 0 { return true }
         return events.contains {
@@ -62,12 +62,12 @@ public struct AuditHistory: Codable, Equatable {
     }
 }
 
-public enum AuditError: LocalizedError {
+enum AuditError: LocalizedError {
     case invalid
     case unavailable
     case system
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .invalid: return "Activity history is invalid or unsafe"
         case .unavailable: return "Activity history is not available yet"
@@ -76,17 +76,17 @@ public enum AuditError: LocalizedError {
     }
 }
 
-public enum AuditFormat {
-    public static let retentionSeconds = 7.0 * 24 * 60 * 60
-    public static let maximumEvents = 512
-    public static let maximumSummaries = 64
-    public static let maximumBytes = 256 * 1024
-    public static let kinds: Set<String> = ["helper_start", "helper_recovered", "recovery", "state_changed",
+enum AuditFormat {
+    static let retentionSeconds = 7.0 * 24 * 60 * 60
+    static let maximumEvents = 512
+    static let maximumSummaries = 64
+    static let maximumBytes = 256 * 1024
+    static let kinds: Set<String> = ["helper_start", "helper_recovered", "recovery", "state_changed",
         "lid_closed", "lid_opened", "lid_unknown", "sleep_observed", "agent_sleep_requested",
         "error", "stop", "audit_reset"]
     static let modes: Set<String> = ["off", "awake", "paused", "error", "stopped"]
 
-    public static func validate(_ history: AuditHistory) throws {
+    static func validate(_ history: AuditHistory) throws {
         guard history.schema == 1, UUID(uuidString: history.generation) != nil,
               validTime(history.updatedAt), validTime(history.retentionAnchor),
               history.events.count <= maximumEvents, history.summaries.count <= maximumSummaries else {
@@ -95,10 +95,10 @@ public enum AuditFormat {
         for event in history.events {
             guard UUID(uuidString: event.id) != nil, validTime(event.at), kinds.contains(event.kind),
                   modes.contains(event.mode), event.reason.utf8.count <= 256,
-                  event.session == nil || event.session!.utf8.count <= 64,
-                  event.battery == nil || (0...100).contains(event.battery!),
+                  event.session.map({ $0.utf8.count <= 64 }) ?? true,
+                  event.battery.map({ (0...100).contains($0) }) ?? true,
                   ThermalLevel(rawValue: event.thermal) != nil,
-                  event.durationSeconds == nil || validDuration(event.durationSeconds!) else {
+                  event.durationSeconds.map(validDuration) ?? true else {
                 throw AuditError.invalid
             }
         }
@@ -106,10 +106,10 @@ public enum AuditFormat {
             let parts = [summary.protectedAwakeSeconds, summary.sleepingSeconds,
                          summary.unprotectedAwakeSeconds, summary.unknownSeconds]
             guard UUID(uuidString: summary.id) != nil, validTime(summary.closedAt),
-                  summary.openedAt == nil || validTime(summary.openedAt!),
+                  summary.openedAt.map(validTime) ?? true,
                   validDuration(summary.closedSeconds), parts.allSatisfy(validDuration),
                   abs(parts.reduce(0, +) - summary.closedSeconds) <= 0.01,
-                  summary.lastStopReason == nil || summary.lastStopReason!.utf8.count <= 256 else {
+                  summary.lastStopReason.map({ $0.utf8.count <= 256 }) ?? true else {
                 throw AuditError.invalid
             }
         }
@@ -125,7 +125,7 @@ public enum AuditFormat {
     }
 
     private static func validTime(_ value: Double) -> Bool { value.isFinite && value >= 0 && value < 1e12 }
-    private static func validDuration(_ value: Double) -> Bool { value.isFinite && value >= 0 && value < 1e12 }
+    fileprivate static func validDuration(_ value: Double) -> Bool { value.isFinite && value >= 0 && value < 1e12 }
 }
 
 private func auditText(_ text: String, maximum: Int = 256) -> String {
@@ -134,17 +134,17 @@ private func auditText(_ text: String, maximum: Int = 256) -> String {
     return result
 }
 
-public final class AuditTracker {
-    public private(set) var history: AuditHistory
-    public private(set) var lidClosed: Bool?
-    public private(set) var revision: UInt64 = 1
-    public var latestSummaryID: String? { history.summaries.last?.id }
-    public var needsWrite: Bool {
+final class AuditTracker {
+    private(set) var history: AuditHistory
+    private(set) var lidClosed: Bool?
+    private(set) var revision: UInt64 = 1
+    var latestSummaryID: String? { history.summaries.last?.id }
+    var needsWrite: Bool {
         dirty || (history.current != nil && currentContinuous.isFinite && lastWriteContinuous.isFinite &&
                   currentContinuous - lastWriteContinuous >= 30)
     }
 
-    private struct Sample: Equatable {
+    private struct Sample {
         var lid: Bool?
         var continuous: Double
         var absolute: Double
@@ -167,8 +167,8 @@ public final class AuditTracker {
     private var lastWriteContinuous: Double
     private var currentContinuous: Double
 
-    public init(history existing: AuditHistory? = nil, generation: String,
-                continuous: Double, absolute: Double, wallTime: Double) {
+    init(history existing: AuditHistory? = nil, generation: String,
+         continuous: Double, wallTime: Double) {
         let safeWall = wallTime.isFinite && wallTime >= 0 && wallTime < 1e12 ? wallTime : 0
         if let existing, (try? AuditFormat.validate(existing)) != nil {
             history = existing
@@ -192,8 +192,8 @@ public final class AuditTracker {
         prune(at: safeWall)
     }
 
-    public func sample(lidClosed: Bool?, continuous: Double, absolute: Double, wallTime: Double,
-                       mode: String, reason: String, session: String?, verifiedAwake: Bool, power: PowerSample) {
+    func sample(lidClosed: Bool?, continuous: Double, absolute: Double, wallTime: Double,
+                mode: String, reason: String, session: String?, verifiedAwake: Bool, power: PowerSample) {
         let safeMode = AuditFormat.modes.contains(mode) ? mode : "error"
         let state = Sample(lid: lidClosed, continuous: continuous, absolute: absolute, mode: safeMode,
                            reason: auditText(reason), session: session.map { auditText($0, maximum: 64) },
@@ -268,11 +268,11 @@ public final class AuditTracker {
         prune(at: history.updatedAt)
     }
 
-    public func record(kind: String, wallTime: Double, mode: String, reason: String,
-                       session: String?, verifiedAwake: Bool, lidClosed: Bool?, power: PowerSample,
-                       durationSeconds: Double? = nil) {
+    func record(kind: String, wallTime: Double, mode: String, reason: String,
+                session: String?, verifiedAwake: Bool, lidClosed: Bool?, power: PowerSample,
+                durationSeconds: Double? = nil) {
         guard AuditFormat.kinds.contains(kind),
-              durationSeconds == nil || (durationSeconds!.isFinite && durationSeconds! >= 0 && durationSeconds! < 1e12) else {
+              durationSeconds.map(AuditFormat.validDuration) ?? true else {
             return
         }
         let event = AuditEvent(id: UUID().uuidString, at: safeWall(wallTime), kind: kind, mode: mode,
@@ -288,7 +288,7 @@ public final class AuditTracker {
         prune(at: event.at)
     }
 
-    public func didWrite(continuous: Double, revision writtenRevision: UInt64? = nil) {
+    func didWrite(continuous: Double, revision writtenRevision: UInt64? = nil) {
         guard continuous.isFinite && continuous >= 0 else { return }
         lastWriteContinuous = continuous
         if writtenRevision == nil || writtenRevision == revision { dirty = false }

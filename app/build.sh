@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 SOURCE="$(cd "$(dirname "$0")" && pwd)"
+APP_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$SOURCE/Packaging/Info.plist")
 OUTPUT="${1:-$SOURCE/../WakeGuard-build}"
 mkdir -p "$OUTPUT"
 OUTPUT="$(cd "$OUTPUT" && pwd)"
@@ -18,8 +19,8 @@ swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/Shared.swift Sources/Session
 "$BUILD/session-tests"
 swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/Shared.swift Sources/LeaseClient.swift Tests/IPCChecks.swift -o "$BUILD/ipc-tests"
 "$BUILD/ipc-tests"
-swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/Shared.swift Sources/Session.swift Sources/Audit.swift Sources/Helper.swift -o "$BUILD/helper-check" -framework Foundation -framework IOKit
-"$BUILD/helper-check" --self-test
+swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/Shared.swift Sources/Session.swift Sources/Audit.swift Sources/Helper.swift Tests/HelperTests.swift -o "$BUILD/helper-check" -framework Foundation -framework IOKit
+"$BUILD/helper-check"
 swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/Shared.swift Sources/Audit.swift Sources/AuditClient.swift Tests/AuditTests.swift -o "$BUILD/audit-tests"
 "$BUILD/audit-tests"
 swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/Shared.swift Sources/HelperSetup.swift Tests/HelperSetupTests.swift -o "$BUILD/helper-setup-tests" -framework Security
@@ -41,7 +42,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$SOURCE/Packaging/Info.plist" "$APP/Contents/Info.plist"
 cp "$SOURCE/Packaging/WakeGuard.icns" "$APP/Contents/Resources/"
 swiftc -O -target arm64-apple-macos13 Sources/Shared.swift Sources/LeaseClient.swift Sources/Audit.swift Sources/AuditClient.swift Sources/HelperSetup.swift Sources/PanelView.swift Sources/AgentActivity.swift Sources/CodexActivity.swift Sources/ClaudeActivity.swift Sources/ClaudeHooks.swift Sources/App.swift -o "$APP/Contents/MacOS/WakeGuard" -framework AppKit -framework SwiftUI -framework ServiceManagement -framework Security
-swiftc -O -target arm64-apple-macos13 Sources/Shared.swift Sources/Session.swift Sources/Audit.swift Sources/Helper.swift -o "$BUILD/nl.local.WakeGuard.helper" -framework Foundation -framework IOKit
+swiftc -O -target arm64-apple-macos13 Sources/Shared.swift Sources/Session.swift Sources/Audit.swift Sources/Helper.swift Sources/HelperMain.swift -o "$BUILD/nl.local.WakeGuard.helper" -framework Foundation -framework IOKit
 codesign --force --sign - "$BUILD/nl.local.WakeGuard.helper"
 mkdir -p "$PAYLOAD/Library/PrivilegedHelperTools" "$PAYLOAD/Library/LaunchDaemons" "$BUILD/scripts"
 cp "$BUILD/nl.local.WakeGuard.helper" "$PAYLOAD/Library/PrivilegedHelperTools/"
@@ -49,7 +50,7 @@ cp "$SOURCE/Packaging/nl.local.WakeGuard.plist" "$PAYLOAD/Library/LaunchDaemons/
 cp "$SOURCE/Packaging/preinstall" "$SOURCE/Packaging/postinstall" "$BUILD/scripts/"
 chmod 0755 "$BUILD/scripts/preinstall" "$BUILD/scripts/postinstall" "$PAYLOAD/Library/PrivilegedHelperTools/nl.local.WakeGuard.helper"
 chmod 0644 "$PAYLOAD/Library/LaunchDaemons/nl.local.WakeGuard.plist"
-pkgbuild --root "$PAYLOAD" --scripts "$BUILD/scripts" --identifier nl.local.WakeGuard.helper-installer --version 1.2.4 --install-location / --ownership recommended "$BUILD/WakeGuard-helper-raw.pkg"
+pkgbuild --root "$PAYLOAD" --scripts "$BUILD/scripts" --identifier nl.local.WakeGuard.helper-installer --version "$APP_VERSION" --install-location / --ownership recommended "$BUILD/WakeGuard-helper-raw.pkg"
 rm -rf "$BUILD/package"
 pkgutil --expand "$BUILD/WakeGuard-helper-raw.pkg" "$BUILD/package"
 # Keep existing shared directories' permissions; postinstall sets only our own files.

@@ -16,7 +16,7 @@ enum HelperSetupError: LocalizedError {
 }
 
 final class HelperSetup {
-    static let packagePath = WakePaths.installedApp + "/Contents/Resources/WakeGuard-helper.pkg"
+    private static let packagePath = WakePaths.installedApp + "/Contents/Resources/WakeGuard-helper.pkg"
     static let scriptSource = "do shell script \"/usr/sbin/installer -pkg '/Applications/WakeGuard.app/Contents/Resources/WakeGuard-helper.pkg' -target /\" with administrator privileges"
     private let queue = DispatchQueue(label: "nl.local.WakeGuard.helper-setup")
     private let executor: () -> HelperSetupResult
@@ -75,7 +75,7 @@ final class HelperSetup {
         }
     }
 
-    static func validateInstalledBundle() throws {
+    private static func validateInstalledBundle() throws {
         let bundleURL = Bundle.main.bundleURL
         try requireInstalledLocation(bundleURL)
         var applications = stat()

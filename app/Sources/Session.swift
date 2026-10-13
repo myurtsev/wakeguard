@@ -1,16 +1,16 @@
 import Foundation
 
-public struct SessionResult {
-    public var mode: String
-    public var reason: String
-    public var session: String?
-    public var remainingSeconds: Int?
-    public var shouldHold: Bool
-    public var shouldUninstall: Bool
-    public var shouldSleep: Bool
+struct SessionResult {
+    let mode: String
+    let reason: String
+    let session: String?
+    let remainingSeconds: Int?
+    let shouldHold: Bool
+    let shouldUninstall: Bool
+    let shouldSleep: Bool
 
-    public init(mode: String, reason: String, session: String?, remainingSeconds: Int?,
-                shouldHold: Bool, shouldUninstall: Bool = false, shouldSleep: Bool = false) {
+    init(mode: String, reason: String, session: String?, remainingSeconds: Int?,
+         shouldHold: Bool, shouldUninstall: Bool = false, shouldSleep: Bool = false) {
         self.mode = mode
         self.reason = reason
         self.session = session
@@ -21,7 +21,7 @@ public struct SessionResult {
     }
 }
 
-public final class WakeSession {
+final class WakeSession {
     private let generation: String
     private var session: String?
     private var sequence: UInt64 = 0
@@ -31,16 +31,16 @@ public final class WakeSession {
     private var leaseUntil: Double?
     private var stoppedReason: String?
 
-    public init(generation: String) {
+    init(generation: String) {
         self.generation = generation
     }
 
-    public func block(_ reason: String) {
+    func block(_ reason: String) {
         if enabled { stoppedReason = reason }
     }
 
-    public func step(request: WakeRequest?, power: PowerSample, wallTime: Double,
-                     uptime: Double) -> SessionResult {
+    func step(request: WakeRequest?, power: PowerSample, wallTime: Double,
+              uptime: Double) -> SessionResult {
         guard uptime.isFinite, uptime >= 0 else {
             block("Clock unavailable")
             return result(mode: enabled ? "stopped" : "off", reason: stoppedReason ?? "", uptime: uptime)

@@ -27,7 +27,7 @@ private final class ClaudeFixture {
     func emit(_ event: String, session: String = "session", extra: [String: Any] = [:], process: ClaudeProcessIdentity? = nil) throws {
         time += 1
         try store.commit(input(event, session: session, extra: extra), identity: process ?? identity,
-                         now: time, pending: store.beginPending())
+                         now: { self.time }, pending: store.beginPending())
     }
 
     func snapshot() -> AgentSnapshot {

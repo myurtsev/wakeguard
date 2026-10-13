@@ -260,12 +260,12 @@ final class Helper {
         if FileManager.default.fileExists(atPath: WakePaths.audit) {
             do {
                 history = try JSONDecoder().decode(AuditHistory.self, from:
-                    checkedData(WakePaths.audit, owner: 0, mode: 0o600, maximumBytes: 256 * 1024))
+                    checkedData(WakePaths.audit, owner: 0, mode: 0o600, maximumBytes: AuditFormat.maximumBytes))
                 if let history { try AuditFormat.validate(history) }
             } catch { auditError = "Activity history unreadable; history reset" }
         }
         audit = AuditTracker(history: history, generation: generation, continuous: continuousSeconds(),
-                             absolute: absoluteSeconds(), wallTime: Date().timeIntervalSince1970)
+                             wallTime: Date().timeIntervalSince1970)
         if auditError != nil {
             audit.record(kind: "audit_reset", wallTime: Date().timeIntervalSince1970, mode: "off",
                          reason: "Previous activity history could not be read", session: nil,
@@ -316,7 +316,7 @@ final class Helper {
         guard audit.needsWrite, !auditWritePending, !auditSuspended else { return }
         do {
             let data = try JSONEncoder().encode(audit.history)
-            guard data.count <= 256 * 1024 else { throw HelperError.message("Activity history exceeds size limit") }
+            guard data.count <= AuditFormat.maximumBytes else { throw HelperError.message("Activity history exceeds size limit") }
             let revision = audit.revision
             let capturedAt = continuousSeconds()
             auditWritePending = true
@@ -448,78 +448,5 @@ final class Helper {
         bootout.standardError = FileHandle.nullDevice
         try bootout.run()
         // Keep the run loop free to handle launchd's SIGTERM from our own bootout.
-    }
-}
-
-func helperSelfTests() throws {
-    let awake = try sleepValue(kCFBooleanTrue)
-    let asleep = try sleepValue(kCFBooleanFalse)
-    assert(awake && !asleep)
-    for value: CFTypeRef? in [nil, "0" as CFString, NSNumber(value: 0), NSNumber(value: 2)] {
-        do { _ = try sleepValue(value); assertionFailure("Invalid power state accepted") } catch {}
-    }
-    do { _ = try command("/bin/sh", ["-c", "false"]); assertionFailure("Unlisted command accepted") } catch {}
-    let directory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        .appendingPathComponent("helper-check-" + UUID().uuidString)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false,
-                                            attributes: [.posixPermissions: 0o700])
-    defer { try? FileManager.default.removeItem(at: directory) }
-    let file = directory.appendingPathComponent("lease")
-    try Data([1]).write(to: file)
-    try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
-    let fixture = try checkedData(file.path, owner: getuid(), mode: 0o600)
-    assert(fixture == Data([1]))
-    let link = directory.appendingPathComponent("link")
-    try FileManager.default.createSymbolicLink(at: link, withDestinationURL: file)
-    do { _ = try checkedData(link.path, owner: getuid(), mode: 0o600); assertionFailure("Symlink accepted") } catch {}
-    let fd = open(file.path, O_WRONLY | O_CLOEXEC)
-    guard fd >= 0 else { throw HelperError.message("Cannot read test file") }
-    defer { close(fd) }
-    guard flock(fd, LOCK_EX | LOCK_NB) == 0 else { throw HelperError.message("Cannot lock test file") }
-    do { _ = try checkedData(file.path, owner: getuid(), mode: 0o600, locked: true); assertionFailure("Busy lease accepted") } catch {}
-    flock(fd, LOCK_UN)
-    do { try removeRegular(link.path, owner: getuid()); assertionFailure("Symlink removal accepted") } catch {}
-    let hardLink = directory.appendingPathComponent("hard-link")
-    try FileManager.default.linkItem(at: file, to: hardLink)
-    do { try removeRegular(file.path, owner: getuid()); assertionFailure("Hard-link removal accepted") } catch {}
-    try FileManager.default.removeItem(at: hardLink)
-    try removeRegular(file.path, owner: getuid())
-    try removeRegular(file.path, owner: getuid())
-    let sample = powerSample()
-    let clock = continuousSeconds()
-    assert(clock.isFinite && clock >= 0 && continuousSeconds() >= clock)
-    print("Helper boundary checks passed; read-only kernel SleepDisabled=\(try sleepDisabled()), AC=\(String(describing: sample.onAC)), battery=\(String(describing: sample.battery)), thermal=\(sample.thermal.rawValue)")
-}
-
-@main
-struct HelperMain {
-    static func main() {
-        if CommandLine.arguments.dropFirst() == ["--self-test"] {
-            do { try helperSelfTests(); exit(0) } catch { fputs("Self-test failed: \(error)\n", stderr); exit(1) }
-        }
-        guard geteuid() == 0 else { fputs("Helper requires installer-managed root service\n", stderr); exit(1) }
-        do {
-            if CommandLine.arguments.dropFirst() == ["--recover"] {
-                try checkDirectory(); try restoreOwnedSleep(); exit(0)
-            }
-            guard CommandLine.arguments.count == 1 else { throw HelperError.message("Invalid helper option") }
-            try checkDirectory()
-            let recovered = try markerExists()
-            try restoreOwnedSleep()
-            let helper = try Helper(recovered: recovered)
-            try cleanTemporaryFiles(uid: helper.uid)
-            helper.watchLid()
-            signal(SIGTERM, SIG_IGN)
-            signal(SIGINT, SIG_IGN)
-            let termination = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-            let interrupt = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
-            let stop = { do { try helper.stop(); exit(0) } catch { exit(1) } }
-            termination.setEventHandler(handler: stop); interrupt.setEventHandler(handler: stop)
-            termination.resume(); interrupt.resume()
-            helper.tick()
-            let timer = Timer(timeInterval: 1, repeats: true) { _ in helper.tick() }
-            RunLoop.main.add(timer, forMode: .common)
-            withExtendedLifetime((helper, termination, interrupt, timer)) { RunLoop.main.run() }
-        } catch { fputs("WakeGuard helper: \(error.localizedDescription)\n", stderr); exit(1) }
     }
 }

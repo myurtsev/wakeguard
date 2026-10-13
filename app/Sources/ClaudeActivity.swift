@@ -1,10 +1,10 @@
 import Foundation
 import Darwin
 
-struct ClaudeProcessIdentity: Codable, Equatable, Hashable {
-    var pid: Int32
-    var startedSeconds: UInt64
-    var startedMicroseconds: UInt64
+struct ClaudeProcessIdentity: Codable, Hashable {
+    let pid: Int32
+    let startedSeconds: UInt64
+    let startedMicroseconds: UInt64
 
     var isValid: Bool { pid > 1 && startedSeconds > 0 && startedMicroseconds < 1_000_000 }
     var key: String { "\(pid)-\(startedSeconds)-\(startedMicroseconds)" }
@@ -14,9 +14,9 @@ private enum ClaudeActivityError: Error { case unsafeFile, invalidEvent, unavail
 
 enum ClaudeProcesses {
     struct Details {
-        var identity: ClaudeProcessIdentity
-        var parent: Int32
-        var path: String
+        let identity: ClaudeProcessIdentity
+        let parent: Int32
+        let path: String
     }
 
     private static func isNativeVersionName(_ name: String) -> Bool {
@@ -206,7 +206,7 @@ final class ClaudeEventStore {
         .appendingPathComponent("Library/Application Support/WakeGuard/agent-events", isDirectory: true)
     static let maximumFileSize = 65_536
     let directory: URL
-    let descriptor: Int32
+    private let descriptor: Int32
     private var pendingDescriptors: [String: Int32] = [:]
 
     init(directory: URL, create: Bool) throws {
@@ -276,10 +276,6 @@ final class ClaudeEventStore {
         guard record.filename == name else { throw ClaudeActivityError.invalidEvent }
         try record.validate(now: now)
         return record
-    }
-
-    func commit(_ input: [String: Any], identity: ClaudeProcessIdentity, now: Double, pending: String) throws {
-        try commit(input, identity: identity, now: { now }, pending: pending)
     }
 
     func commit(_ input: [String: Any], identity: ClaudeProcessIdentity, now: () -> Double, pending: String) throws {
@@ -393,10 +389,10 @@ final class ClaudeEventStore {
 }
 
 struct ClaudeActivityReader {
-    var directory: URL
-    var now: () -> Double
-    var processIdentity: (Int32) -> ClaudeProcessIdentity?
-    var nativeSources: () -> (identities: [ClaudeProcessIdentity], unknown: Int)
+    let directory: URL
+    let now: () -> Double
+    let processIdentity: (Int32) -> ClaudeProcessIdentity?
+    let nativeSources: () -> (identities: [ClaudeProcessIdentity], unknown: Int)
 
     init(directory: URL = ClaudeEventStore.defaultDirectory,
          now: @escaping () -> Double = { Date().timeIntervalSince1970 },

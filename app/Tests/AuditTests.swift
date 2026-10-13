@@ -13,7 +13,7 @@ enum AuditTests {
     static func near(_ value: Double, _ expected: Double) { assert(abs(value - expected) < 0.001) }
 
     static func tracker(history: AuditHistory? = nil, wall: Double = 1_000) -> AuditTracker {
-        AuditTracker(history: history, generation: generation, continuous: 100, absolute: 50, wallTime: wall)
+        AuditTracker(history: history, generation: generation, continuous: 100, wallTime: wall)
     }
 
     static func sample(_ tracker: AuditTracker, lid: Bool?, at: Double, active: Double? = nil,
@@ -236,6 +236,23 @@ enum AuditTests {
             sample(summaryLimit, lid: false, at: Double(index * 2 + 1))
         }
         assert(summaryLimit.history.summaries.count == 64)
+
+        let durations = tracker()
+        for duration: Double? in [nil, 0, 0.5, 1e12 - 1] {
+            let count = durations.history.events.count
+            durations.record(kind: "sleep_observed", wallTime: 1_001, mode: "off", reason: "",
+                             session: nil, verifiedAwake: false, lidClosed: nil, power: power,
+                             durationSeconds: duration)
+            assert(durations.history.events.count == count + 1)
+        }
+        let validEventCount = durations.history.events.count
+        for duration in [-1, Double.nan, .infinity, -.infinity, 1e12] {
+            durations.record(kind: "sleep_observed", wallTime: 1_002, mode: "off", reason: "",
+                             session: nil, verifiedAwake: false, lidClosed: nil, power: power,
+                             durationSeconds: duration)
+        }
+        assert(durations.history.events.count == validEventCount)
+        try AuditFormat.validate(durations.history)
 
         var invalid = awake.history
         invalid.schema = 99

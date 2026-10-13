@@ -423,7 +423,9 @@ def check_package(package, helper):
         subprocess.run(["/usr/sbin/pkgutil", "--expand-full", str(package), str(expanded)], check=True)
         info = ET.parse(expanded / "PackageInfo").getroot()
         assert info.attrib["identifier"] == "nl.local.WakeGuard.helper-installer"
-        assert info.attrib["version"] == "1.2.4"
+        with (PROJECT / "Packaging/Info.plist").open("rb") as plist:
+            version = plistlib.load(plist)["CFBundleShortVersionString"]
+        assert info.attrib["version"] == version
         assert info.attrib["overwrite-permissions"] == "false"
         assert info.attrib["auth"] == "root"
         payload = expanded / "Payload"

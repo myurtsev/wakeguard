@@ -7,7 +7,7 @@ struct AuditClient {
         guard lstat(WakePaths.directory, &metadata) == 0 else { throw AuditError.unavailable }
         guard metadata.st_mode & S_IFMT == S_IFDIR, metadata.st_uid == 0,
               metadata.st_mode & 0o7777 == 0o755 else { throw AuditError.invalid }
-        return try Self.readHistory(path: WakePaths.directory + "/history.json", owner: uid)
+        return try Self.readHistory(path: WakePaths.history, owner: uid)
     }
 
     // Fixtures exercise the same bounded file reader without requiring a root-owned test directory.

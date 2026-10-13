@@ -177,7 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var state = PanelState()
         state.title = label
         state.reason = mode == "error" ? (status?.reason ?? "Unknown") :
-            localReason ?? ((status?.reason.isEmpty == false) ? status!.reason : "")
+            localReason ?? status?.reason ?? ""
         if let error = status?.auditError { state.reason += (state.reason.isEmpty ? "" : " · ") + error }
         if state.reason.isEmpty, untilAgents, !active, !setupNeeded, !agentStartAllowed {
             state.reason = agents.unknownCount > 0 ? "Agent status unavailable" : "Start a local agent task first."
@@ -320,7 +320,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch { showError(error.localizedDescription) }
     }
 
-    @objc private func toggleSession() {
+    private func toggleSession() {
         guard !uninstallPending && !helperSetup.isInstalling else { return }
         if session != nil {
             do { try send(enabled: false); disarm("Stopped", stopHelper: false) }
@@ -335,9 +335,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     throw LeaseError.invalid("Wait for normal sleep to be restored before starting")
                 }
                 if untilAgents {
-                    guard (snapshot.protocolVersion ?? 0) >= 2 else {
-                        throw LeaseError.invalid("Update the system helper to use agent mode")
-                    }
                     guard agentWaiter.arm(currentAgents(), now: ProcessInfo.processInfo.systemUptime) else {
                         throw LeaseError.invalid("No confirmed active agents. Start a local agent task first.")
                     }
@@ -413,7 +410,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func toggleAgentMode() {
+    private func toggleAgentMode() {
         let next = !untilAgents
         if next && (status?.protocolVersion ?? 0) < 2 {
             showError("Update the system helper to use agent mode")
@@ -428,9 +425,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !next { agentWaiter.disarm() }
         updateMenu()
     }
-
-    @objc private func connectClaude() { configureClaude(enabled: true) }
-    @objc private func disconnectClaude() { configureClaude(enabled: false) }
 
     private func configureClaude(enabled: Bool) {
         guard session == nil && !uninstallPending && !helperSetup.isInstalling else { return }
@@ -462,21 +456,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenu()
     }
 
-    @objc private func toggleLogin() {
-        if #available(macOS 13, *) {
-            do {
-                switch SMAppService.mainApp.status {
-                case .enabled: try SMAppService.mainApp.unregister()
-                case .requiresApproval: SMAppService.openSystemSettingsLoginItems()
-                default: try SMAppService.mainApp.register()
-                }
-                if SMAppService.mainApp.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
-            } catch { showError("Cannot launch at login: \(error.localizedDescription)") }
-        }
+    private func toggleLogin() {
+        do {
+            switch SMAppService.mainApp.status {
+            case .enabled: try SMAppService.mainApp.unregister()
+            case .requiresApproval: SMAppService.openSystemSettingsLoginItems()
+            default: try SMAppService.mainApp.register()
+            }
+            if SMAppService.mainApp.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
+        } catch { showError("Cannot launch at login: \(error.localizedDescription)") }
         updateMenu()
     }
 
-    @objc private func openInstaller() {
+    private func openInstaller() {
         guard session == nil && !uninstallPending && !helperSetup.isInstalling else { return }
         popover.performClose(nil)
         helperSetup.install { [weak self] result in
@@ -496,7 +488,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenu()
     }
 
-    @objc private func uninstall() {
+    private func uninstall() {
         guard !uninstallPending && !helperSetup.isInstalling else { return }
         popover.performClose(nil)
         let alert = NSAlert()
@@ -518,7 +510,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenu()
     }
 
-    @objc private func showAbout() {
+    private func showAbout() {
         popover.performClose(nil)
         let alert = NSAlert()
         alert.messageText = "WakeGuard"
@@ -538,7 +530,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
-    @objc private func quit() {
+    private func quit() {
         if session != nil { try? send(enabled: false, uninstall: uninstallPending) }
         disarm("Stopped", stopHelper: false)
         NSApp.terminate(nil)

@@ -42,20 +42,20 @@ struct PanelState {
 }
 
 struct PanelActions {
-    var main: () -> Void = {}
-    var mode: (Bool) -> Void = { _ in }
-    var ac: (Bool) -> Void = { _ in }
-    var battery: (Bool) -> Void = { _ in }
-    var darken: (Bool) -> Void = { _ in }
-    var login: (Bool) -> Void = { _ in }
-    var floor: (Int) -> Void = { _ in }
-    var duration: (Int) -> Void = { _ in }
-    var claude: (Bool) -> Void = { _ in }
-    var setup: () -> Void = {}
-    var uninstall: () -> Void = {}
-    var about: () -> Void = {}
-    var quit: () -> Void = {}
-    var activity: () -> Void = {}
+    let main: () -> Void
+    let mode: (Bool) -> Void
+    let ac: (Bool) -> Void
+    let battery: (Bool) -> Void
+    let darken: (Bool) -> Void
+    let login: (Bool) -> Void
+    let floor: (Int) -> Void
+    let duration: (Int) -> Void
+    let claude: (Bool) -> Void
+    let setup: () -> Void
+    let uninstall: () -> Void
+    let about: () -> Void
+    let quit: () -> Void
+    let activity: () -> Void
 }
 
 struct WakePanelView: View {
@@ -319,8 +319,8 @@ private struct SummaryContent: View {
 
 struct SessionSummaryView: View {
     let state: SummaryPresentation
-    var close: () -> Void
-    var activity: () -> Void
+    let close: () -> Void
+    let activity: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
