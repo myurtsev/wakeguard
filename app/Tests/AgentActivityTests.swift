@@ -1,0 +1,115 @@
+import Foundation
+
+@main enum AgentActivityTests {
+    static func snapshot(_ states: [(String, AgentState)], unknownSources: Int = 0) -> AgentSnapshot {
+        AgentSnapshot(observations: states.map {
+            AgentObservation(id: $0.0, provider: "test", state: $0.1, updatedAt: 0)
+        }, unknownSources: unknownSources)
+    }
+
+    static func main() throws {
+        let working = snapshot([("a", .working)])
+        let idle = snapshot([("a", .idle)])
+        let ended = snapshot([("a", .ended)])
+        let counts = snapshot([("a", .working), ("b", .waiting), ("c", .unknown), ("d", .ended)], unknownSources: 2)
+        assert(counts.activeCount == 2 && counts.waitingCount == 1 && counts.unknownCount == 3)
+        let decoded = try JSONDecoder().decode(AgentSnapshot.self, from: JSONEncoder().encode(counts))
+        assert(decoded.activeCount == 2 && decoded.waitingCount == 1 && decoded.unknownCount == 3)
+        assert(snapshot([("a", .unknown)], unknownSources: -1).unknownCount == 1)
+
+        var waiter = AgentWaiter()
+        assert(!waiter.arm(idle, now: 0))
+        assert(!waiter.arm(snapshot([("a", .working)], unknownSources: 1), now: 0))
+        assert(!waiter.arm(snapshot([("a", .working), ("b", .unknown)]), now: 0))
+        assert(!waiter.isArmed)
+        assert(!waiter.step(idle, now: 1_000))
+        assert(waiter.arm(working, now: 0))
+        assert(!waiter.step(idle, now: 1))
+        assert(!waiter.step(idle, now: 30.999))
+        assert(waiter.step(idle, now: 31))
+        assert(!waiter.isArmed && !waiter.step(idle, now: 100))
+
+        var multiple = AgentWaiter()
+        assert(multiple.arm(snapshot([("a", .working), ("b", .waiting)]), now: 0))
+        assert(!multiple.step(snapshot([("a", .ended), ("b", .waiting)]), now: 100))
+        assert(!multiple.step(snapshot([("a", .ended), ("b", .idle)]), now: 101))
+        assert(multiple.step(snapshot([("a", .ended), ("b", .idle)]), now: 131))
+
+        var concurrent = AgentWaiter()
+        assert(concurrent.arm(working, now: 0))
+        assert(!concurrent.step(idle, now: 1))
+        assert(!concurrent.step(snapshot([("a", .idle), ("new", .working)]), now: 30))
+        assert(!concurrent.step(idle, now: 1_000))
+        let allEnded = snapshot([("a", .idle), ("new", .ended)])
+        assert(!concurrent.step(allEnded, now: 1_001))
+        assert(concurrent.step(allEnded, now: 1_031))
+
+        var waiting = AgentWaiter()
+        assert(waiting.arm(snapshot([("a", .waiting)]), now: 0))
+        assert(!waiting.step(snapshot([("a", .waiting)]), now: 10_000))
+        assert(!waiting.step(ended, now: 10_001))
+        assert(waiting.step(ended, now: 10_031))
+
+        var uncertain = AgentWaiter()
+        assert(uncertain.arm(working, now: 0))
+        assert(!uncertain.step(idle, now: 1))
+        assert(!uncertain.step(snapshot([("a", .unknown)]), now: 30))
+        assert(!uncertain.step(idle, now: 31))
+        assert(!uncertain.step(snapshot([("a", .idle)], unknownSources: 1), now: 60))
+        assert(!uncertain.step(idle, now: 61))
+        assert(uncertain.step(idle, now: 91))
+
+        var missing = AgentWaiter()
+        assert(missing.arm(working, now: 0))
+        assert(!missing.step(ended, now: 1))
+        assert(!missing.step(AgentSnapshot(), now: 1_000_000))
+        assert(missing.isArmed)
+        assert(!missing.step(ended, now: 1_000_001))
+        assert(missing.step(ended, now: 1_000_031))
+
+        var interrupted = AgentWaiter()
+        assert(interrupted.arm(working, now: 0))
+        assert(!interrupted.step(ended, now: 1))
+        assert(!interrupted.step(working, now: 30))
+        assert(!interrupted.step(ended, now: 31))
+        assert(!interrupted.step(ended, now: 60.999))
+        assert(interrupted.step(ended, now: 61))
+
+        for invalid in [Double.nan, .infinity, -1] {
+            var clock = AgentWaiter()
+            assert(!clock.arm(working, now: invalid))
+            assert(clock.arm(working, now: 0))
+            assert(!clock.step(idle, now: 1))
+            assert(!clock.step(idle, now: invalid))
+            assert(clock.isArmed)
+            assert(!clock.step(idle, now: 100))
+            assert(!clock.step(idle, now: 129.999))
+            assert(clock.step(idle, now: 130))
+        }
+        var backwards = AgentWaiter()
+        assert(backwards.arm(working, now: 100))
+        assert(!backwards.step(idle, now: 101))
+        assert(!backwards.step(idle, now: 50))
+        assert(!backwards.step(idle, now: 51))
+        assert(backwards.step(idle, now: 81))
+
+        var clockActivity = AgentWaiter()
+        assert(clockActivity.arm(working, now: 0))
+        assert(!clockActivity.step(snapshot([("a", .idle), ("new", .working)]), now: .nan))
+        assert(!clockActivity.step(idle, now: 100))
+        assert(!clockActivity.step(idle, now: 1_000_000))
+        assert(!clockActivity.step(allEnded, now: 1_000_001))
+        assert(clockActivity.step(allEnded, now: 1_000_031))
+
+        var duplicate = AgentWaiter()
+        assert(duplicate.arm(working, now: 0))
+        assert(!duplicate.step(snapshot([("a", .idle), ("a", .working)]), now: 1_000))
+        assert(!duplicate.step(idle, now: 1_001))
+        duplicate.disarm()
+        assert(!duplicate.isArmed && !duplicate.step(idle, now: 10_000))
+        assert(duplicate.arm(working, now: 20_000))
+        assert(!duplicate.step(idle, now: 20_001))
+        assert(duplicate.step(idle, now: 20_031))
+        print("Agent activity tests passed")
+    }
+}

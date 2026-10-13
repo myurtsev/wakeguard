@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-ssr
+.DS_Store
+.claude/
+.env
+.env.*
+app/.build/
+WakeGuard-build/

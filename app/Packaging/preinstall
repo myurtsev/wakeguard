@@ -1,0 +1,98 @@
+#!/bin/sh
+set -eu
+if [ "${3:-/}" != / ]; then echo 'Install on the current startup disk.' >&2; exit 1; fi
+label='nl.local.WakeGuard'
+data='/var/db/nl.local.WakeGuard'
+helper='/Library/PrivilegedHelperTools/nl.local.WakeGuard.helper'
+plist='/Library/LaunchDaemons/nl.local.WakeGuard.plist'
+app='/Applications/WakeGuard.app'
+uid=$(/usr/bin/stat -f %u /dev/console)
+if [ "$uid" -lt 501 ]; then
+    echo 'Sign in to the Mac account that will use WakeGuard.' >&2
+    exit 1
+fi
+for directory in /Library/PrivilegedHelperTools /Library/LaunchDaemons; do
+    if [ -L "$directory" ]; then echo 'Unsafe helper installation path.' >&2; exit 1; fi
+    if [ -e "$directory" ] && { [ ! -d "$directory" ] || [ "$(/usr/bin/stat -f '%u:%Lp' "$directory")" != '0:755' ]; }; then
+        echo 'The helper destination must be a root-owned directory with standard permissions.' >&2; exit 1
+    fi
+done
+if [ -e "$helper" ] && { [ ! -f "$helper" ] || [ "$(/usr/bin/stat -f '%u:%l:%Lp' "$helper")" != '0:1:755' ]; }; then
+    echo 'The existing helper has unsafe permissions.' >&2; exit 1
+fi
+if [ -e "$plist" ] && { [ ! -f "$plist" ] || [ "$(/usr/bin/stat -f '%u:%l:%Lp' "$plist")" != '0:1:644' ]; }; then
+    echo 'The existing service configuration has unsafe permissions.' >&2; exit 1
+fi
+for target in "$data" "$helper" "$plist" "$app"; do
+    if [ -L "$target" ]; then echo 'A helper installation path is a symbolic link. Installation stopped.' >&2; exit 1; fi
+done
+if [ -e "$data" ] && { [ ! -d "$data" ] || [ "$(/usr/bin/stat -f '%u:%Lp' "$data")" != '0:755' ]; }; then
+    echo 'The existing helper directory has unsafe permissions.' >&2; exit 1
+fi
+if [ -e "$app" ]; then
+    identifier=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")
+    if [ "$identifier" != "$label" ]; then echo 'Another app occupies WakeGuard.app. Installation stopped.' >&2; exit 1; fi
+fi
+previous_uid=''
+if [ -e "$data/config.json" ] || [ -L "$data/config.json" ]; then
+    if [ -L "$data/config.json" ] || [ ! -f "$data/config.json" ] || [ "$(/usr/bin/stat -f '%u:%l:%Lp' "$data/config.json")" != '0:1:644' ]; then
+        echo 'The existing account configuration is unsafe.' >&2; exit 1
+    fi
+    previous_uid=$(/usr/bin/plutil -extract uid raw -o - "$data/config.json")
+    case "$previous_uid" in ''|*[!0-9]*) echo 'The existing installation account is invalid.' >&2; exit 1 ;; esac
+    if [ "$previous_uid" -lt 501 ]; then echo 'The existing installation account is invalid.' >&2; exit 1; fi
+fi
+for file in audit.json history.json; do
+    if [ -e "$data/$file" ] || [ -L "$data/$file" ]; then
+        if [ -z "$previous_uid" ]; then echo 'The owner of the existing activity history could not be verified.' >&2; exit 1; fi
+        owner=0
+        if [ "$file" = history.json ]; then owner="$previous_uid"; fi
+        if [ -L "$data/$file" ] || [ ! -f "$data/$file" ] || [ "$(/usr/bin/stat -f '%u:%l:%Lp' "$data/$file")" != "$owner:1:600" ]; then
+            echo 'The existing activity history has unsafe permissions.' >&2; exit 1
+        fi
+    fi
+done
+if /bin/launchctl print "system/$label" >/dev/null 2>&1; then
+    /bin/launchctl bootout "system/$label"
+fi
+if [ -e "$data/owns-sleep" ]; then
+    if [ ! -f "$helper" ]; then
+        echo 'The previous helper is required to restore sleep before installation.' >&2; exit 1
+    fi
+    "$helper" --recover
+fi
+# Atomic writes can leave a private old-account inode if a helper crashes before rename.
+for file in "$data"/.*; do
+    name=${file##*/}
+    case "$name" in .????????-????-????-????-????????????) ;; *) continue ;; esac
+    case "${name#.}" in *[!0123456789abcdefABCDEF-]*) continue ;; esac
+    if [ -L "$file" ] || [ ! -f "$file" ]; then echo 'A temporary helper file is unsafe.' >&2; exit 1; fi
+    metadata=$(/usr/bin/stat -f '%u:%l:%Lp' "$file")
+    case "$metadata" in 0:1:600|0:1:644) ;; 
+        *) case "$metadata" in "$previous_uid":1:600|"$previous_uid":1:644)
+               if [ -z "$previous_uid" ]; then echo 'The owner of a temporary helper file could not be verified.' >&2; exit 1; fi ;;
+           *) echo 'A temporary helper file has unsafe permissions.' >&2; exit 1 ;; esac ;;
+    esac
+done
+for file in "$data"/.*; do
+    name=${file##*/}
+    case "$name" in .????????-????-????-????-????????????) ;; *) continue ;; esac
+    case "${name#.}" in *[!0123456789abcdefABCDEF-]*) continue ;; esac
+    /bin/rm -f "$file"
+done
+# Never expose an earlier account's private history after re-enrollment.
+if [ -n "$previous_uid" ] && [ "$previous_uid" != "$uid" ]; then
+    /bin/rm -f "$data/audit.json" "$data/history.json"
+fi
+# Bind enrollment to the account observed before payload installation.
+/bin/mkdir -p "$data"
+/usr/sbin/chown root:wheel "$data"
+/bin/chmod 0755 "$data"
+if [ -L "$data/.install-uid" ] || { [ -e "$data/.install-uid" ] && [ ! -f "$data/.install-uid" ]; }; then
+    echo 'The helper enrollment file is unsafe.' >&2; exit 1
+fi
+/bin/rm -f "$data/.install-uid"
+umask 077
+/usr/bin/printf '%s\n' "$uid" > "$data/.install-uid"
+/bin/chmod 0600 "$data/.install-uid"
+exit 0

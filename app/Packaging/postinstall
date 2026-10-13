@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+if [ "${3:-/}" != / ]; then echo 'Install on the current startup disk.' >&2; exit 1; fi
+label='nl.local.WakeGuard'
+data='/var/db/nl.local.WakeGuard'
+if [ -L "$data" ]; then echo 'The helper directory is unsafe.' >&2; exit 1; fi
+if [ -e "$data" ] && { [ ! -d "$data" ] || [ "$(/usr/bin/stat -f '%u:%Lp' "$data")" != '0:755' ]; }; then
+    echo 'The helper directory has unsafe permissions.' >&2; exit 1
+fi
+enrollment="$data/.install-uid"
+if [ -L "$enrollment" ] || [ ! -f "$enrollment" ] || [ "$(/usr/bin/stat -f '%u:%l:%Lp' "$enrollment")" != '0:1:600' ]; then
+    echo 'The installation account could not be verified.' >&2; exit 1
+fi
+uid=$(/bin/cat "$enrollment")
+case "$uid" in ''|*[!0-9]*) echo 'The installation account is invalid.' >&2; exit 1 ;; esac
+if [ "$uid" -lt 501 ] || [ "$uid" != "$(/usr/bin/stat -f %u /dev/console)" ]; then
+    echo 'The signed-in account changed. Set up the helper again.' >&2; exit 1
+fi
+/bin/mkdir -p "$data"
+/usr/sbin/chown root:wheel "$data"
+/bin/chmod 0755 "$data"
+for file in config.json lease.json status.json; do
+    if [ -L "$data/$file" ] || { [ -e "$data/$file" ] && [ ! -f "$data/$file" ]; }; then
+        echo 'An existing helper file is unsafe. Installation stopped.' >&2; exit 1
+    fi
+done
+# Replace fixed children in a root-owned directory rather than follow existing inodes.
+/bin/rm -f "$data/config.json" "$data/lease.json" "$data/status.json"
+umask 077
+/usr/bin/printf '{"uid":%s}\n' "$uid" > "$data/config.json"
+/usr/sbin/chown root:wheel "$data/config.json"
+/bin/chmod 0644 "$data/config.json"
+/usr/bin/printf '{}\n' > "$data/lease.json"
+/usr/sbin/chown "$uid":staff "$data/lease.json"
+/bin/chmod 0600 "$data/lease.json"
+/bin/rm -f "$enrollment"
+/usr/sbin/chown root:wheel '/Library/PrivilegedHelperTools/nl.local.WakeGuard.helper' '/Library/LaunchDaemons/nl.local.WakeGuard.plist'
+/bin/chmod 0755 '/Library/PrivilegedHelperTools/nl.local.WakeGuard.helper'
+/bin/chmod 0644 '/Library/LaunchDaemons/nl.local.WakeGuard.plist'
+/bin/launchctl enable "system/$label"
+/bin/launchctl bootstrap system '/Library/LaunchDaemons/nl.local.WakeGuard.plist'
+# Wait for a live, off-by-default helper before Installer reports success.
+tries=0
+while [ "$tries" -lt 10 ]; do
+    if [ -s "$data/status.json" ]; then exit 0; fi
+    /bin/sleep 1
+    tries=$((tries + 1))
+done
+echo 'The system helper did not start. Try setting it up again.' >&2
+exit 1
