@@ -6,6 +6,13 @@ import Darwin
         func rejects(_ operation: () throws -> Void) {
             do { try operation(); assertionFailure("Unsafe setup input accepted") } catch {}
         }
+        func waitUntil(_ condition: () -> Bool) {
+            let deadline = ProcessInfo.processInfo.systemUptime + 5
+            while !condition() && ProcessInfo.processInfo.systemUptime < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            }
+            assert(condition(), "Helper setup condition timed out")
+        }
         try HelperSetup.requireInstalledLocation(URL(fileURLWithPath: WakePaths.installedApp))
         for path in ["/Volumes/WakeGuard/WakeGuard.app", "/Applications/Other.app", "/tmp/WakeGuard.app"] {
             rejects { try HelperSetup.requireInstalledLocation(URL(fileURLWithPath: path)) }
@@ -43,19 +50,24 @@ import Darwin
         assert(NSAppleScript(source: HelperSetup.scriptSource)?.compileAndReturnError(&compileError) == true)
         assert(compileError == nil)
         var callbacks: [HelperSetupResult] = []
+        let executorGate = DispatchSemaphore(value: 0)
         let setup = HelperSetup(timeout: 0.02) {
-            Thread.sleep(forTimeInterval: 0.08)
+            executorGate.wait()
             return .installed
         }
         assert(setup.install { assert(Thread.isMainThread); callbacks.append($0) })
         assert(!setup.install { _ in assertionFailure("Parallel setup accepted") })
-        RunLoop.main.run(until: Date().addingTimeInterval(0.04))
+        waitUntil { callbacks.count == 1 }
         assert(callbacks.count == 1 && setup.isInstalling)
         guard case .failed = callbacks[0] else { fatalError("Setup watchdog did not fire") }
-        RunLoop.main.run(until: Date().addingTimeInterval(0.08))
+        assert(!setup.install { _ in assertionFailure("Timed-out setup accepted parallel installation") })
+        executorGate.signal()
+        waitUntil { !setup.isInstalling }
         assert(callbacks.count == 1 && !setup.isInstalling)
-        assert(setup.install { callbacks.append($0) })
-        RunLoop.main.run(until: Date().addingTimeInterval(0.12))
+        assert(setup.install { assert(Thread.isMainThread); callbacks.append($0) })
+        waitUntil { callbacks.count == 2 }
+        executorGate.signal()
+        waitUntil { !setup.isInstalling }
         assert(callbacks.count == 2 && !setup.isInstalling)
         print("Helper setup checks passed; no authorization or installation executed")
     }
