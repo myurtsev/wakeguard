@@ -194,6 +194,41 @@ function Agents() {
   )
 }
 
+// "In your bag" illustration, drawn with CSS shapes (percentages of a square stage).
+// Backdrop layers drift on scroll for depth; the figure stays put.
+const BAG_BACKDROP = [
+  { inset: 0, background: 'radial-gradient(circle at 50% 34%,#f6f8fc 0%,rgba(246,248,252,0) 46%)' },
+  { left: '2%', bottom: '14%', width: '9%', height: '20%', background: '#cad7eb', borderRadius: '3px 3px 0 0' },
+  { left: '11.5%', bottom: '14%', width: '6%', height: '30%', background: '#c2d0e7', borderRadius: '3px 3px 0 0' },
+  { left: '18%', bottom: '14%', width: '8%', height: '15%', background: '#cad7eb', borderRadius: '3px 3px 0 0' },
+  { right: '3%', bottom: '14%', width: '7%', height: '26%', background: '#c2d0e7', borderRadius: '3px 3px 0 0' },
+  { right: '10.5%', bottom: '14%', width: '9%', height: '17%', background: '#cad7eb', borderRadius: '3px 3px 0 0' },
+  { left: 0, right: 0, bottom: 0, height: '14%', background: 'linear-gradient(180deg,#c4d2e8,#b9c9e2)' },
+]
+const BAG_FIGURE = [
+  { left: '41%', top: '9%', width: '18%', height: '20%', borderRadius: '50% 50% 46% 46% / 56% 56% 44% 44%', background: 'radial-gradient(circle at 42% 30%,#4c525c 0%,#2a2e35 62%,#22252b 100%)' },
+  { left: '39.4%', top: '17.6%', width: '3.2%', height: '4.8%', borderRadius: '50%', background: 'linear-gradient(90deg,#d29d7b,#e3b393)' },
+  { left: '57.4%', top: '17.6%', width: '3.2%', height: '4.8%', borderRadius: '50%', background: 'linear-gradient(90deg,#e3b393,#d29d7b)' },
+  { left: '46%', top: '25.5%', width: '8%', height: '7%', background: 'linear-gradient(180deg,#b9876a 0%,#d6a383 45%,#dcab8b 100%)' },
+  { left: '15%', top: '42%', width: '13.5%', height: '62%', borderRadius: '50% 50% 0 0 / 18% 18% 0 0', background: 'linear-gradient(90deg,#4a5a72,#55667f)' },
+  { left: '71.5%', top: '42%', width: '13.5%', height: '62%', borderRadius: '50% 50% 0 0 / 18% 18% 0 0', background: 'linear-gradient(90deg,#55667f,#4a5a72)' },
+  { left: '18%', top: '32.5%', width: '64%', height: '72%', borderRadius: '36% 36% 0 0 / 16% 16% 0 0', background: 'linear-gradient(90deg,#536580 0%,#647792 50%,#536580 100%)' },
+  { left: '36%', top: '29%', width: '28%', height: '8.5%', borderRadius: '50% / 60%', background: 'linear-gradient(180deg,#5d6f8a,#4b5c75)' },
+  { left: '41%', top: '30.2%', width: '18%', height: '4%', borderRadius: '50%', background: '#3f4f66' },
+  { left: '35.5%', top: '25.5%', width: '29%', height: '16%', borderRadius: '5px 5px 0 0', background: 'linear-gradient(180deg,#f3f5f8 0%,#d9dde3 55%,#c2c8d1 100%)', boxShadow: 'inset 0 1px 0 #fff,0 0 0 1px rgba(20,22,26,.10)', zIndex: 2 },
+  { left: '35.5%', top: '26.4%', width: '29%', height: '.6%', background: 'rgba(20,22,26,.10)', zIndex: 2 },
+  { left: '30.5%', top: '32.5%', width: '6.5%', height: '15%', borderRadius: '12px 12px 6px 6px', background: 'linear-gradient(90deg,#182130,#222d3e)', zIndex: 3 },
+  { left: '63%', top: '32.5%', width: '6.5%', height: '15%', borderRadius: '12px 12px 6px 6px', background: 'linear-gradient(90deg,#222d3e,#182130)', zIndex: 3 },
+  { left: '45%', top: '35.4%', width: '10%', height: '4.4%', border: '3px solid #1c2636', borderBottom: 0, borderRadius: '999px 999px 0 0', zIndex: 3 },
+  { left: '29%', top: '38%', width: '42%', height: '52%', borderRadius: '18% / 13%', background: 'linear-gradient(90deg,#1a2332 0%,#253146 50%,#1a2332 100%)', boxShadow: 'inset 0 2px 0 rgba(255,255,255,.07),0 22px 34px -16px rgba(10,20,40,.6)', zIndex: 3 },
+  { left: '32.5%', top: '42%', width: '35%', height: '7%', borderTop: '2px solid #3a475d', borderRadius: '50% 50% 0 0 / 100% 100% 0 0', zIndex: 4 },
+  { left: '65%', top: '42.6%', width: '1.6%', height: '3.4%', borderRadius: '2px', background: '#9aa6b8', zIndex: 4 },
+  { left: '46.5%', top: '52%', width: '7%', height: '2.4%', borderRadius: '3px', background: '#3a475d', zIndex: 4 },
+  { left: '34%', top: '60%', width: '32%', height: '24%', borderRadius: '16% / 20%', background: 'linear-gradient(180deg,#2b384d,#243043)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.07)', zIndex: 4 },
+  { left: '37%', top: '64.2%', width: '26%', height: '.7%', borderRadius: '2px', background: '#4b5a73', zIndex: 5 },
+  { left: '60.5%', top: '64.2%', width: '1.6%', height: '3.6%', borderRadius: '2px', background: '#9aa6b8', zIndex: 5 },
+]
+
 const SAFETY = [
   ['Thermal status', 'Normal', 'Stops if the Mac gets too warm'],
   ['Battery limit', '74% · stops at 20%', 'Or allow AC power only'],
@@ -233,6 +268,8 @@ export default function App() {
   // Hero visual tilts back and drifts up as it scrolls away.
   const heroRef = useScrollVar(r => -r.top / r.height)
   // Download card zooms up to full size as it enters.
+  // Bag illustration: backdrop drifts slower than the figure as it passes through view.
+  const bagRef = useScrollVar((r, vh) => (vh - r.top) / (vh + r.height))
   const ctaRef = useScrollVar((r, vh) => (vh - r.top) / (vh * 0.7))
 
   return (
@@ -299,6 +336,43 @@ export default function App() {
               </Reveal>
             ))}
             <p className="note" style={{ marginTop: 6 }}>Illustrative sample data</p>
+          </Reveal>
+
+          <Reveal as="figure" ref={bagRef} className="bag" style={{ gridColumn: '1/-1' }}>
+            <div role="img" aria-label="Illustration: a person seen from behind, walking with a backpack. A MacBook with its lid closed sticks out of the bag while WakeGuard keeps agents running." className="bag-stage">
+              {BAG_BACKDROP.map((st, i) => (
+                <div key={i} className={`bag-backdrop${i === 0 ? ' bag-glow' : i < 6 ? ' bag-bldg' : ''}`} style={{ ...st, '--i': i }} />
+              ))}
+              <div className="bag-walker">
+                <div className="bag-bob">
+                  {BAG_FIGURE.map((st, i) => <div key={i} style={st} />)}
+                  <div className="bag-badge">
+                    <div className="bag-ring" />
+                    <div className="bag-ring" style={{ animationDelay: '1.2s' }} />
+                    <img src={ICON} alt="" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="stack" style={{ gap: 12, padding: 'clamp(24px,4vw,48px)', alignSelf: 'center' }}>
+              <figcaption className="stack" style={{ gap: 8, marginBottom: 8 }}>
+                <Reveal as="span" className="words" style={{ fontSize: 'clamp(22px,2.4vw,28px)', fontWeight: 700, letterSpacing: '-.02em' }}><Words>In your bag. Still at work.</Words></Reveal>
+                <Reveal as="span" delay={200} style={{ fontSize: 15.5, lineHeight: 1.55, color: '#3d4450', textWrap: 'pretty', maxWidth: '30em' }}>Close the lid and head out. WakeGuard keeps your agents running and lets the Mac sleep once they’re done. If it gets too warm in your bag, it stops.</Reveal>
+              </figcaption>
+              <Reveal delay={320} className="glass row" style={{ gap: 12 }}>
+                <img src={ICON} alt="" width="34" height="34" style={{ borderRadius: 8, display: 'block' }} />
+                <div className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 650 }}>Awake · Until agents finish</span>
+                  <span style={{ fontSize: 13.5, color: '#4a505a' }}>Lid closed · 42 min · Thermal status: Normal</span>
+                </div>
+              </Reveal>
+              <Reveal delay={440} className="glass stack" style={{ gap: 9, fontSize: 14.5 }}>
+                <span style={{ fontWeight: 650 }}>Agents</span>
+                <div className="between"><span>Codex</span><span className="row" style={{ gap: 8, color: '#3d4450' }}><Dot color="#1462e0" className="pulse" />2 working</span></div>
+                <div className="between"><span>Claude Code</span><span className="row" style={{ gap: 8, color: '#3d4450' }}><Dot color="#d99a1e" />1 waiting</span></div>
+              </Reveal>
+              <span style={{ fontSize: 12.5, color: '#4f5662', marginTop: 4 }}>Illustrative sample data · subject to power settings and safety limits</span>
+            </div>
           </Reveal>
         </section>
 
