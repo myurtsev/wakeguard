@@ -254,12 +254,13 @@ export default function App() {
       <main id="top">
         <section aria-labelledby="hero-title" className="wrap hero">
           <div className="stack" style={{ gap: 28, maxWidth: 540 }}>
-            <Reveal className="pill"><Dot color="#1468f0" />Menu bar app for Apple silicon</Reveal>
+            <Reveal className="pill"><Dot color="#1468f0" />Free and open source · Apple silicon</Reveal>
             <Reveal as="h1" id="hero-title" className="h1 words" delay={80}><Words>Keep your Mac awake.</Words><span style={{ color: '#1462e0' }}><Words from={4}>Let your agents finish.</Words></span></Reveal>
             <Reveal as="p" delay={520} style={{ margin: 0, fontSize: 'clamp(18px,1.6vw,21px)', lineHeight: 1.5, color: '#4a505a', textWrap: 'pretty', maxWidth: '30em' }}>Control sleep from your menu bar, follow local agent activity and let your Mac rest when the work is done.</Reveal>
             <Reveal className="row" delay={640} style={{ flexWrap: 'wrap', gap: '14px 20px' }}>
               <a href="#download" className="btn-primary">Download for macOS</a>
-              <span className="muted" style={{ fontSize: 14 }}>Apple silicon · macOS 13 or later</span>
+              <a href={SOURCE_URL} className="btn-secondary">View source on GitHub</a>
+              <span className="muted" style={{ fontSize: 14, flexBasis: '100%' }}>Apple silicon · macOS 13 or later</span>
             </Reveal>
           </div>
 
@@ -383,11 +384,13 @@ export default function App() {
           <div ref={ctaRef} className="dark stack cta-card" style={{ padding: 'clamp(36px,6vw,72px)', gap: 'clamp(40px,6vw,64px)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap: '32px 64px' }}>
               <div className="stack" style={{ gap: 16 }}>
-                <Reveal as="span" className="eyebrow">Local and private</Reveal>
-                <Reveal as="h2" id="privacy-title" className="h2 words" style={{ fontSize: 'clamp(30px,3.8vw,44px)' }}><Words>Runs entirely on your Mac.</Words></Reveal>
+                <Reveal as="span" className="eyebrow">Open source · Local · Private</Reveal>
+                <Reveal as="h2" id="privacy-title" className="h2 words" style={{ fontSize: 'clamp(30px,3.8vw,44px)' }}><Words>Open source. Runs entirely on your Mac.</Words></Reveal>
+                <Reveal as="p" delay={250} style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#b3b8c2', textWrap: 'pretty', maxWidth: '28em' }}>Every line of WakeGuard is public. Read how it manages sleep, check what it records and build it yourself.</Reveal>
+                <Reveal as="a" delay={350} href={SOURCE_URL} className="link-arrow">View source on GitHub →</Reveal>
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', fontSize: 16, lineHeight: 1.5 }}>
-                {['No account and no subscription service.', 'No network requests.', 'Activity logs never contain prompts, responses or conversation content.'].map((t, i) => (
+                {['Free and open source. No account and no subscription service.', 'No network requests.', 'Activity logs never contain prompts, responses or conversation content.'].map((t, i) => (
                   <Reveal as="li" key={t} delay={150 + i * 110} className="slide" style={{ padding: '14px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,.1)' : 0, display: 'flex', gap: 14 }}><span aria-hidden="true" style={{ color: '#7fb0ff' }}>—</span><span>{t}</span></Reveal>
                 ))}
               </ul>
@@ -411,8 +414,7 @@ export default function App() {
       </main>
 
       <footer className="wrap muted" style={{ paddingBottom: 40, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-        <span>© 2026 WakeGuard</span>
-        <a href={SOURCE_URL}>Source on GitHub</a>
+        <span style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}><span>© 2026 WakeGuard · Open source</span><a href={SOURCE_URL} style={{ color: '#3d424b' }}>Source code</a></span>
         <span>Closed-lid operation depends on power settings and safety limits.</span>
       </footer>
     </div>

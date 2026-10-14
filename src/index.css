@@ -36,6 +36,11 @@ button{font:inherit}
 .btn-nav:hover{background:#2a2e35;color:#fff}
 .btn-primary{display:inline-flex;align-items:center;background:#1462e0;color:#fff;padding:15px 24px;border-radius:14px;font-size:17px;font-weight:600;box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 8px 20px -8px rgba(20,98,224,.6)}
 .btn-primary:hover{background:#0f54c4;color:#fff}
+.btn-secondary{display:inline-flex;align-items:center;padding:14px 20px;border-radius:14px;font-size:16px;font-weight:600;color:#14161a;background:#fff;border:1px solid rgba(20,22,26,.12);transition:background .25s,transform .35s var(--spring)}
+.btn-secondary:hover{background:#eceef2;color:#14161a;transform:translateY(-2px)}
+.btn-secondary:active{transform:scale(.97)}
+.link-arrow{align-self:flex-start;font-size:15px;font-weight:600;color:#7fb0ff}
+.link-arrow:hover{color:#a9c9ff}
 
 /* hero */
 .hero{padding-top:clamp(48px,8vw,104px);padding-bottom:clamp(64px,8vw,112px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:clamp(48px,6vw,80px);align-items:center}
