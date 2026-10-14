@@ -2,7 +2,7 @@
 
 A native macOS menu bar app that keeps your Mac awake with the lid closed, follows local agent activity, and allows sleep when the work finishes.
 
-[Website](https://myurtsev.github.io/wakeguard/) · [Download beta](https://github.com/myurtsev/wakeguard/releases/tag/v1.2.5-beta.1) · [Report a bug](https://github.com/myurtsev/wakeguard/issues)
+[Website](https://myurtsev.github.io/wakeguard/) · [Download beta](https://github.com/myurtsev/wakeguard/releases/tag/v1.2.6-beta.1) · [Report a bug](https://github.com/myurtsev/wakeguard/issues)
 
 Requires Apple Silicon and macOS 13 or later. No accounts, advertising, telemetry, or network requests from the app.
 
@@ -16,9 +16,9 @@ Requires Apple Silicon and macOS 13 or later. No accounts, advertising, telemetr
 
 ## Installation
 
-**Beta:** the app is ad-hoc signed, the helper package is unsigned, and the download is not notarized by Apple. The menu may sometimes close slowly. It has been tested on one Mac; compatibility across Macs and macOS versions is not yet established.
+**Beta:** the app is ad-hoc signed, the helper package is unsigned, and the download is not notarized by Apple. It has been tested on one Mac; compatibility across Macs and macOS versions is not yet established.
 
-1. Download **WakeGuard.dmg** from [Releases](https://github.com/myurtsev/wakeguard/releases/tag/v1.2.5-beta.1).
+1. Download **WakeGuard.dmg** from [Releases](https://github.com/myurtsev/wakeguard/releases/tag/v1.2.6-beta.1).
 2. Open the DMG and drag **WakeGuard.app** into **Applications**.
 3. Open WakeGuard from Applications. macOS may block this beta; review [Apple's guidance for apps from unidentified developers](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac) before allowing it. Do not disable Gatekeeper system-wide.
 4. Click **Install system helper** and approve the macOS administrator prompt.

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const ICON = `${import.meta.env.BASE_URL}wakeguard-icon.png`
 const SOURCE_URL = 'https://github.com/myurtsev/wakeguard'
-const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/v1.2.5-beta.1/WakeGuard.dmg`
+const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/v1.2.6-beta.1/WakeGuard.dmg`
 const BLUE = '#4d8dff', AMBER = '#f2b84b', GREEN = '#8fd19e', GREY = '#5c626d'
 
 const PHASES = [
@@ -403,7 +403,7 @@ export default function App() {
               </div>
               <div className="stack" style={{ gap: 10, maxWidth: 320 }}>
                 <a href={DOWNLOAD_URL} className="btn-cta">Download for macOS</a>
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#a9aeb8' }}>Beta 1.2.5 · Not notarized; macOS may block opening. Menu dismissal can be delayed. <a href={`${SOURCE_URL}#installation`} style={{ color: '#7fb0ff' }}>Installation notes</a></p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#a9aeb8' }}>Beta 1.2.6 · Not notarized; macOS may block opening. <a href={`${SOURCE_URL}#installation`} style={{ color: '#7fb0ff' }}>Installation notes</a></p>
               </div>
             </Reveal>
           </div>

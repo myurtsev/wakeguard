@@ -57,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePanel)
+        statusItem.button?.sendAction(on: .leftMouseDown)
         claudeConnected = (try? ClaudeHooks.isEnabled()) ?? defaults.bool(forKey: "claudeConnected")
         tick()
         let timer = Timer(timeInterval: 2, target: self, selector: #selector(tick), userInfo: nil, repeats: true)
@@ -79,6 +80,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !popover.isShown { togglePanel() }
         return false
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        popover.close()
     }
 
     private func panelActions() -> PanelActions {

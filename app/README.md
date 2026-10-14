@@ -1,4 +1,4 @@
-# WakeGuard 1.2.5
+# WakeGuard 1.2.6
 
 Standalone macOS menu bar app for Apple Silicon, macOS 13 or later. Built independently, with no external libraries, accounts, advertising or network requests.
 
