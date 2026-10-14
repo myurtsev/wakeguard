@@ -58,6 +58,8 @@ For the app, use an Apple Silicon Mac with Apple's Command Line Tools and Python
 
 This runs the app and installer checks, then creates an ad-hoc signed app and DMG in `WakeGuard-build/`. It installs nothing. Physical lid, battery, thermal, and display behavior still require hardware checks.
 
+GitHub Actions runs the native build, Swift checks, and installer checks on Apple Silicon for pull requests and pushes to `main`. The workflow can also be run manually.
+
 ## License
 
 [MIT](LICENSE).
