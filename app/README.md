@@ -1,4 +1,4 @@
-# WakeGuard 1.3.3
+# WakeGuard 1.3.4
 
 Standalone macOS menu bar app for Apple Silicon, macOS 13 or later. Built independently, with no external libraries, accounts or advertising. Core monitoring runs locally; the remote plugin catalog and enabled integrations can make network requests.
 
@@ -22,7 +22,6 @@ This local build is ad-hoc signed and is not notarized by Apple. The embedded he
 - **Power adapter / Battery:** choose which power sources allow sleep prevention. Only the power adapter is enabled by default.
 - **Battery limit:** stop on battery at or below 20%, 30% or 40%.
 - **Time limit:** 30, 60 or 120 minutes, or no time limit. The default is 60 minutes. This remains a maximum in agent mode.
-- **Turn off displays when lid closes:** request display sleep, including connected displays. Disable it to keep an external display on.
 - **Launch at login:** open the app without starting a session.
 - **Activity:** view recent status changes, sleep measurements and closed-lid summaries.
 
@@ -30,7 +29,13 @@ The menu bar panel shows working agents separately from agents waiting for input
 
 Open **More options → Plugins…** for the offline catalog, remote refresh, package import, permission review and per-plugin settings. Plugins are disabled after installation or update until you enable them. Read the [plugin guide](../docs/plugins.md) for the JavaScript API, examples and distribution instructions.
 
-Lock the Mac with **Control–Command–Q** before closing the lid. Display sleep does not explicitly lock the screen. Keep the Mac on a ventilated surface.
+Lock the Mac with **Control–Command–Q** before closing the lid. WakeGuard does not lock the Mac or force displays to sleep. Keep the Mac on a ventilated surface.
+
+### Codex computer use
+
+Open **Settings → Codex setup…** for the setup checklist and current WakeGuard status. Install Codex's **Computer Use** plugin and allow macOS **Screen Recording** and **Accessibility** when prompted. In Codex, enable **Settings → Computer use → Locked use** and approve access to the apps your task needs. **Always allow** saves app access for future tasks; it does not enable locked use or approve every action.
+
+WakeGuard cannot verify or change Codex permissions. Browser tab screenshots and shell tasks can work while native desktop app access is unavailable. For desktop app control with the lid closed, follow the [Computer Use setup guide](https://learn.chatgpt.com/docs/computer-use), start a WakeGuard session, and lock the Mac before closing the lid.
 
 ## Activity and summaries
 
@@ -78,4 +83,4 @@ The script runs policy, session, IPC, helper, activity, agent, hook and installe
 
 Native panel, activity and summary views are checked in light and dark appearance. Automated tests cover clocks, unknown lid state, restarts, log retention, asynchronous write acknowledgements, parallel agents, missing events, hook preservation and protected filesystem boundaries.
 
-Physical lid closure, battery/thermal cutoffs, display sleep and macOS login approval still require checks on the target Mac. Simulated checks cannot establish behavior of a stalled kernel or all hardware configurations.
+Physical lid closure, battery/thermal cutoffs and macOS login approval still require checks on the target Mac. Simulated checks cannot establish behavior of a stalled kernel or all hardware configurations.

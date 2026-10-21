@@ -4,8 +4,22 @@ import Foundation
 enum PolicyTests {
     static func main() throws {
         let defaults = WakeSettings()
-        assert(defaults == WakeSettings(onAC: true, onBattery: false, batteryFloor: 20,
-                                        darkenDisplays: true, sessionMinutes: 60))
+        assert(defaults == WakeSettings(onAC: true, onBattery: false, batteryFloor: 20, sessionMinutes: 60))
+        let storedSettings = WakeSettings(onAC: false, onBattery: true, batteryFloor: 40, sessionMinutes: 120)
+        let storedData = try JSONEncoder().encode(storedSettings)
+        var legacySettings = try JSONSerialization.jsonObject(with: storedData) as! [String: Any]
+        let oldHelperSettings = try JSONDecoder().decode(LegacyWakeSettings.self, from: storedData)
+        assert(!oldHelperSettings.darkenDisplays)
+        assert(!oldHelperSettings.onAC && oldHelperSettings.onBattery)
+        assert(oldHelperSettings.batteryFloor == 40 && oldHelperSettings.sessionMinutes == 120)
+        for displaySleep: Bool? in [true, false, nil] {
+            legacySettings["darkenDisplays"] = displaySleep
+            let data = try JSONSerialization.data(withJSONObject: legacySettings)
+            let migrated = try JSONDecoder().decode(WakeSettings.self, from: data)
+            assert(migrated == storedSettings)
+            let encoded = try JSONDecoder().decode(LegacyWakeSettings.self, from: JSONEncoder().encode(migrated))
+            assert(!encoded.darkenDisplays)
+        }
         let ac = PowerSample(onAC: true, battery: nil, thermal: .nominal)
         assert(WakePolicy.evaluate(settings: defaults, power: ac) == .hold)
         for battery in [-1, 0, 20, 101] {
@@ -87,6 +101,18 @@ enum PolicyTests {
         assert(decodedRequest.generation == "generation" && decodedRequest.session == "session")
         assert(decodedRequest.sequence == 1 && decodedRequest.enabled && !decodedRequest.uninstall)
         assert(decodedRequest.settings == defaults && decodedRequest.issuedAt == now)
+        let oldHelperRequest = try JSONDecoder().decode(LegacySettingsRequest.self, from: encodedRequest)
+        assert(!oldHelperRequest.settings.darkenDisplays)
+        let removal = WakeRequest(generation: "generation", session: "session", sequence: 2,
+                                  enabled: false, issuedAt: now, settings: storedSettings, uninstall: true)
+        let oldHelperRemoval = try JSONDecoder().decode(LegacySettingsRequest.self, from: JSONEncoder().encode(removal))
+        assert(!oldHelperRemoval.enabled && oldHelperRemoval.uninstall && !oldHelperRemoval.settings.darkenDisplays)
+        var legacyRequest = try JSONSerialization.jsonObject(with: encodedRequest) as! [String: Any]
+        legacySettings["darkenDisplays"] = true
+        legacyRequest["settings"] = legacySettings
+        let oldAppRequest = try JSONDecoder().decode(WakeRequest.self, from: JSONSerialization.data(withJSONObject: legacyRequest))
+        assert(oldAppRequest.settings == storedSettings)
+        assert(oldAppRequest.generation == decodedRequest.generation && oldAppRequest.enabled == decodedRequest.enabled)
         let status = HelperStatus(generation: "generation", session: nil, mode: "idle", reason: "",
                                   onAC: nil, battery: nil, thermal: "unknown", owned: false,
                                   remainingSeconds: nil, updatedAt: now, installerUID: 501)
@@ -98,4 +124,18 @@ enum PolicyTests {
         assert(WakePaths.lease == "/var/db/nl.local.WakeGuard/lease.json")
         print("Policy tests passed")
     }
+}
+
+private struct LegacyWakeSettings: Decodable {
+    let onAC: Bool
+    let onBattery: Bool
+    let batteryFloor: Int
+    let darkenDisplays: Bool
+    let sessionMinutes: Int
+}
+
+private struct LegacySettingsRequest: Decodable {
+    let enabled: Bool
+    let uninstall: Bool
+    let settings: LegacyWakeSettings
 }

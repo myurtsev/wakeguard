@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private let helperSetup = HelperSetup()
     private var activityWindow: ActivityWindowController?
     private var pluginsWindow: PluginsWindowController?
+    private var computerUseWindow: ComputerUseSetupWindowController?
     private lazy var plugins = PluginManager()
     private var summaryWindow: SummaryWindowController?
     private var history: AuditHistory?
@@ -104,7 +105,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             },
             ac: { [weak self] value in self?.settings.onAC = value; self?.persist() },
             battery: { [weak self] value in self?.settings.onBattery = value; self?.persist() },
-            darken: { [weak self] value in self?.settings.darkenDisplays = value; self?.persist() },
             login: { [weak self] _ in self?.toggleLogin() },
             floor: { [weak self] value in
                 guard [20, 30, 40].contains(value) else { return }
@@ -120,7 +120,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             about: { [weak self] in self?.showAbout() },
             quit: { [weak self] in self?.quit() },
             activity: { [weak self] in self?.showActivity() },
-            plugins: { [weak self] in self?.showPlugins() })
+            plugins: { [weak self] in self?.showPlugins() },
+            computerUse: { [weak self] in self?.showComputerUseSetup() })
     }
 
     @objc private func tick() {
@@ -235,6 +236,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             state.latestSummaryTitle = "Last session: \(duration(summary.closedSeconds))"
         }
         panelController.rootView = WakePanelView(state: state, actions: panelActions())
+        computerUseWindow?.update(status: label, awake: active && mode == "awake" && status?.owned == true)
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "WakeGuard: \(label)")
         statusItem.button?.image?.isTemplate = true
         statusItem.button?.toolTip = state.reason.isEmpty ? label : "\(label): \(state.reason)"
@@ -346,6 +348,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         popover.performClose(nil)
         if pluginsWindow == nil { pluginsWindow = PluginsWindowController(manager: plugins) }
         pluginsWindow?.present()
+    }
+
+    private func showComputerUseSetup() {
+        popover.performClose(nil)
+        if computerUseWindow == nil { computerUseWindow = ComputerUseSetupWindowController() }
+        updateMenu()
+        computerUseWindow?.present()
     }
 
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
