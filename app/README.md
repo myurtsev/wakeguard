@@ -1,4 +1,4 @@
-# WakeGuard 1.3.0
+# WakeGuard 1.3.1
 
 Standalone macOS menu bar app for Apple Silicon, macOS 13 or later. Built independently, with no external libraries, accounts or advertising. Core monitoring runs locally; the remote plugin catalog and enabled integrations can make network requests.
 

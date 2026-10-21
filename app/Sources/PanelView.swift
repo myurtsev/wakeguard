@@ -59,6 +59,29 @@ struct PanelActions {
     let plugins: () -> Void
 }
 
+private struct SettingsDisclosureStyle: DisclosureGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button { configuration.isExpanded.toggle() } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                    configuration.label
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
+            if configuration.isExpanded {
+                configuration.content.frame(maxWidth: .infinity)
+            }
+        }
+    }
+}
+
 struct WakePanelView: View {
     let state: PanelState
     let actions: PanelActions
@@ -168,6 +191,7 @@ struct WakePanelView: View {
                 .toggleStyle(.checkbox)
                 .disabled(!state.canChangeSettings)
             }
+            .disclosureGroupStyle(SettingsDisclosureStyle())
 
             Divider()
             HStack(alignment: .top) {
