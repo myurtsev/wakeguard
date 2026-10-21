@@ -252,6 +252,209 @@ const SetupRow = ({ label, value }) => (
   <div className="between" style={{ alignItems: 'center' }}><span>{label}</span><span className="chip">{value}</span></div>
 )
 
+const PLUGIN_DOCS_URL = `${SOURCE_URL}/blob/main/docs/plugins.md`
+
+const PLUGINS = [
+  {
+    id: 'a', name: 'Agent status', desc: 'Combined working, waiting and unavailable agent counts.',
+    icon: <span className="pl-icon" style={{ gap: 3 }}><Dot size={5} color="#1462e0" /><Dot size={5} color="#d99a1e" /><Dot size={5} color="#a3a9b3" /></span>,
+    perms: [['Agent activity', 'Counts only'], ['Menu bar panel', 'Show a status line'], ['Network', 'None']],
+  },
+  {
+    id: 'n', name: 'Session notifications', desc: 'A macOS notification when a session starts or stops.',
+    icon: <span className="pl-icon"><span style={{ position: 'relative', width: 16, height: 12, borderRadius: 3, border: '1.5px solid #1462e0', display: 'block' }}><Dot size={6} color="#1462e0" className="pl-badge-dot" /></span></span>,
+    perms: [['Session events', 'Start and stop'], ['macOS notifications', 'Post notifications'], ['Network', 'None']],
+  },
+]
+
+const IDEAS = [
+  ['Slack update', 'HTTPS', 'Post to a channel when a session starts or stops, using a webhook you provide.', <span style={{ fontWeight: 700, fontSize: 15, color: '#1462e0' }}>#</span>],
+  ['Phone push', 'HTTPS', 'Get a push notification on your phone when an agent is waiting for input.', <span style={{ width: 11, height: 17, borderRadius: 3, border: '1.5px solid #1462e0', display: 'block' }} />],
+  ['Desk light', 'Local network', 'Turn a smart lamp amber while agents wait for you, via your home hub.', <span style={{ width: 14, height: 14, borderRadius: '50%', background: AMBER, boxShadow: '0 0 0 3px rgba(242,184,75,.25)', display: 'block' }} />],
+  ['Run a Shortcut', 'Local', 'Trigger a macOS Shortcut when a session stops, like pausing music or logging time.', <span style={{ width: 14, height: 14, transform: 'rotate(45deg)', borderRadius: 3, border: '1.5px solid #1462e0', display: 'block' }} />],
+]
+
+const PLUGIN_STEPS = [
+  ['Install.', 'The plugin is added but stays disabled.'],
+  ['Review permissions.', 'See what it can read and do before it runs.'],
+  ['Enable.', 'Turn it on yourself, and off again at any time.'],
+]
+
+// Plugin status per id: 'none' → 'busy' (installing) → 'off' → 'on'.
+const PLUGINS_RESET = { status: { a: 'none', n: 'none' }, sel: 'a', tab: 'avail' }
+
+function PluginsPreview() {
+  const [state, setState] = useState(PLUGINS_RESET)
+  const [toast, setToast] = useState(false)
+  const timers = useRef({})
+  useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), [])
+
+  const { status, sel, tab } = state
+  const setStatus = (id, st) => setState(s => ({ ...s, sel: id, status: { ...s.status, [id]: st } }))
+  const install = id => {
+    if (status[id] !== 'none') return
+    setStatus(id, 'busy')
+    timers.current[id] = setTimeout(() => setStatus(id, 'off'), 700)
+  }
+  const notify = () => {
+    clearTimeout(timers.current.toast)
+    setToast(true)
+    timers.current.toast = setTimeout(() => setToast(false), 4200)
+  }
+  const reset = () => { Object.values(timers.current).forEach(clearTimeout); setToast(false); setState(PLUGINS_RESET) }
+
+  const installed = id => status[id] === 'off' || status[id] === 'on'
+  const count = PLUGINS.filter(p => installed(p.id)).length
+  const visible = PLUGINS.filter(p => tab === 'avail' || installed(p.id))
+  const d = PLUGINS.find(p => p.id === sel), st = status[sel], on = st === 'on'
+
+  return (
+    <>
+      <div className="pl-stage">
+        <div aria-live="polite" className="pl-toast-wrap">
+          <div aria-hidden={!toast} className={`pl-toast${toast ? ' show' : ''}`}>
+            <img src={ICON} alt="" width="30" height="30" style={{ borderRadius: 7, display: 'block', flex: 'none' }} />
+            <div className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
+              <div className="between" style={{ gap: 8, fontSize: 13 }}><span style={{ fontWeight: 650 }}>WakeGuard</span><span style={{ color: '#6a707a' }}>now</span></div>
+              <span style={{ fontSize: 13, fontWeight: 550 }}>Session started</span>
+              <span style={{ fontSize: 12.5, color: '#4a505a' }}>Keeping your Mac awake until agents finish.</span>
+            </div>
+          </div>
+        </div>
+
+        <div role="group" aria-label="WakeGuard Plugins window preview" className="pl-window">
+          <div className="pl-titlebar">
+            <div aria-hidden="true" style={{ display: 'flex', gap: 8 }}><Dot size={12} color="#ff5f57" /><Dot size={12} color="#febc2e" /><Dot size={12} color="#28c840" /></div>
+            <div role="tablist" aria-label="Plugin list" className="pl-tabs">
+              <button type="button" role="tab" aria-selected={tab === 'avail'} onClick={() => setState(s => ({ ...s, tab: 'avail' }))}>Available</button>
+              <button type="button" role="tab" aria-selected={tab === 'inst'} onClick={() => setState(s => ({ ...s, tab: 'inst' }))}>Installed<span key={count} className="pl-count">{count}</span></button>
+            </div>
+            <span style={{ justifySelf: 'end', fontSize: 13, fontWeight: 600, color: '#3d424b' }}>Plugins</span>
+          </div>
+
+          <div style={{ padding: 8 }}>
+            {visible.map(p => {
+              const s = status[p.id]
+              return (
+                <div key={p.id} className={`pl-row${sel === p.id ? ' sel' : ''}`}>
+                  {p.icon}
+                  <button type="button" aria-pressed={sel === p.id} onClick={() => setState(x => ({ ...x, sel: p.id }))} className="pl-row-main">
+                    <span style={{ fontWeight: 600, fontSize: 14.5 }}>{p.name}</span>
+                    <span style={{ fontSize: 13, color: '#555b65', lineHeight: 1.4 }}>{p.desc}</span>
+                  </button>
+                  {installed(p.id)
+                    ? <button type="button" role="switch" aria-checked={s === 'on'} aria-label={`Enable ${p.name}`} onClick={() => setStatus(p.id, s === 'on' ? 'off' : 'on')} className={`pl-switch${s === 'on' ? ' on' : ''}`}>
+                        {s === 'on' ? 'Enabled' : 'Disabled'}<span className="pl-track"><span className="pl-knob" /></span>
+                      </button>
+                    : <button type="button" onClick={() => install(p.id)} className={`pl-install${s === 'busy' ? ' busy' : ''}`}>{s === 'busy' ? 'Installing…' : 'Install'}</button>}
+                </div>
+              )
+            })}
+            {visible.length === 0 && <div className="pl-empty">No plugins installed yet. Install one from Available.</div>}
+          </div>
+
+          <div className="pl-detail">
+            <div className="between" style={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 650, fontSize: 14.5 }}>{d.name}</span>
+              <span className="row" style={{ gap: 7, fontSize: 12.5, color: on ? '#1462e0' : '#5b616b' }}>
+                <Dot size={7} color={on ? '#1462e0' : installed(sel) ? '#a3a9b3' : 'transparent'} />
+                {on ? 'Installed · Enabled' : st === 'off' ? 'Installed · Disabled' : st === 'busy' ? 'Installing…' : 'Not installed'}
+              </span>
+            </div>
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="pl-label">Requested permissions</span>
+              {d.perms.map(([label, value], i) => (
+                <div key={sel + label} className="pl-perm" style={{ '--i': i }}><span style={{ color: '#3d424b' }}>{label}</span><span style={{ fontWeight: 550, textAlign: 'right' }}>{value}</span></div>
+              ))}
+            </div>
+            {!on && <span key={sel + st} className="pl-pop" style={{ fontSize: 13, color: '#4a505a' }}>{installed(sel) ? 'Installed plugins stay disabled until you enable them.' : 'Review the permissions, then install. It won’t run until you enable it.'}</span>}
+            {on && sel === 'a' && (
+              <div className="pl-pop" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }}>
+                {[['3', 'Working', '#1462e0'], ['1', 'Waiting', '#d99a1e'], ['0', 'Unavailable', '#a3a9b3']].map(([n, label, c], i) => (
+                  <div key={label} className="pl-stat" style={{ '--i': i }}><span className="row tnum" style={{ fontSize: 19, fontWeight: 700, gap: 7 }}><Dot size={7} color={c} className={i === 0 ? 'pulse' : ''} />{n}</span><span style={{ fontSize: 12, color: '#555b65' }}>{label}</span></div>
+                ))}
+              </div>
+            )}
+            {on && sel === 'n' && (
+              <div className="pl-pop row" style={{ flexWrap: 'wrap', gap: '10px 14px' }}>
+                <button type="button" onClick={notify} className="pl-sample">Start sample session</button>
+                <span style={{ fontSize: 12.5, color: '#555b65' }}>Shows the session-start notification.</span>
+              </div>
+            )}
+          </div>
+
+          <div className="pl-footer">
+            <button type="button" className="pl-ghost">Install from File…</button>
+            <button type="button" className="pl-ghost">Install from URL…</button>
+          </div>
+        </div>
+      </div>
+      <div className="between" style={{ flexWrap: 'wrap', padding: '0 4px', fontSize: 12.5, color: '#6a707a' }}>
+        <span>Interactive preview · illustrative sample data</span>
+        <button type="button" onClick={reset} className="pl-reset">Reset preview</button>
+      </div>
+    </>
+  )
+}
+
+function Plugins() {
+  return (
+    <section id="plugins" aria-labelledby="plugins-title" className="wrap stack" style={{ paddingBottom: 'clamp(72px,10vw,136px)', scrollMarginTop: 60, gap: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(40px,6vw,72px)', alignItems: 'center', borderTop: '1px solid rgba(20,22,26,.08)', paddingTop: 'clamp(56px,8vw,96px)' }}>
+        <div className="stack" style={{ flex: '1 1 300px', minWidth: 0, maxWidth: 440, gap: 20 }}>
+          <Reveal as="span" className="eyebrow">Plugins</Reveal>
+          <Reveal as="h2" id="plugins-title" className="h2 words"><Words>Extend WakeGuard with plugins.</Words></Reveal>
+          <Reveal as="p" delay={250} className="lead">Add agent status, session notifications, or build your own integration.</Reveal>
+          <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', fontSize: 15, lineHeight: 1.5, color: '#3d424b' }}>
+            {PLUGIN_STEPS.map(([title, text], i) => (
+              <Reveal as="li" key={title} delay={350 + i * 110} className="slide" style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,22,26,.08)', borderBottom: i === 2 ? '1px solid rgba(20,22,26,.08)' : 0 }}>
+                <span className="tnum" style={{ color: '#1462e0', fontWeight: 600 }}>{i + 1}</span>
+                <span><strong style={{ fontWeight: 600, color: '#14161a' }}>{title}</strong> {text}</span>
+              </Reveal>
+            ))}
+          </ul>
+          <Reveal as="p" delay={700} className="muted" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, textWrap: 'pretty' }}>Plugins add information and notifications. They don’t control sleep prevention. Optional integrations can make HTTPS requests, which are listed in their permissions.</Reveal>
+        </div>
+        <Reveal delay={200} className="stack" style={{ flex: '1.5 1 460px', minWidth: 0, maxWidth: '100%', gap: 12 }}>
+          <PluginsPreview />
+        </Reveal>
+      </div>
+
+      <div className="stack" style={{ marginTop: 'clamp(40px,6vw,72px)', gap: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px 24px' }}>
+          <Reveal as="h3" className="words" style={{ margin: 0, fontSize: 'clamp(22px,2.4vw,28px)', letterSpacing: '-.02em' }}><Words>Ideas to build next.</Words></Reveal>
+          <Reveal as="span" delay={150} className="muted" style={{ fontSize: 13.5 }}>Not available yet. Each one is a small plugin away.</Reveal>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 12 }}>
+          {IDEAS.map(([name, tag, text, glyph], i) => (
+            <Reveal as="article" key={name} delay={i * 100} className="card lift pl-idea">
+              <div className="between" style={{ alignItems: 'center' }}><span aria-hidden="true" className="pl-icon">{glyph}</span><span className="pl-tag">{tag}</span></div>
+              <div className="stack" style={{ gap: 6 }}><span style={{ fontWeight: 650, fontSize: 16 }}>{name}</span><span style={{ fontSize: 14, lineHeight: 1.5, color: '#555b65', textWrap: 'pretty' }}>{text}</span></div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+
+      <Reveal className="card pl-dev">
+        <div className="stack" style={{ flex: '1 1 280px', minWidth: 0, gap: 10 }}>
+          <span className="eyebrow">For developers</span>
+          <h3 style={{ margin: 0, fontSize: 22, letterSpacing: '-.015em' }}>Respond to WakeGuard events.</h3>
+          <p>A plugin receives events and uses a small API to show status. Declare its permissions, then share it.</p>
+          <div className="row" style={{ flexWrap: 'wrap', gap: '10px 20px', marginTop: 6 }}>
+            <a href={PLUGIN_DOCS_URL} className="btn-nav">Build a plugin</a>
+            <a href={`${SOURCE_URL}/pulls`} className="pl-link">Submit a plugin via pull request.</a>
+          </div>
+        </div>
+        <pre aria-label="Example plugin code" className="pl-code"><code>
+          <span className="pl-line" style={{ '--i': 0 }}><span style={{ color: '#7fb0ff' }}>function</span> <span style={{ color: '#f2f3f5', fontWeight: 600 }}>onEvent</span><span className="pl-punct">(</span>event<span className="pl-punct">,</span> api<span className="pl-punct">) {'{'}</span></span>
+          <span className="pl-line" style={{ '--i': 1, paddingLeft: '2ch' }}>api<span className="pl-punct">.</span><span style={{ color: '#c9b6ff' }}>setStatus</span><span className="pl-punct">(</span>event<span className="pl-punct">.</span>agents<span className="pl-punct">.</span>working <span className="pl-punct">+</span> <span style={{ color: '#8fd19e' }}>" working"</span><span className="pl-punct">);</span></span>
+          <span className="pl-line pl-punct" style={{ '--i': 2 }}>{'}'}<span className="pl-caret" /></span>
+        </code></pre>
+      </Reveal>
+    </section>
+  )
+}
+
 function useScrolled() {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -413,6 +616,8 @@ export default function App() {
             </Reveal>
           </div>
         </section>
+
+        <Plugins />
 
         <section aria-labelledby="setup-title" style={{ borderTop: '1px solid rgba(20,22,26,.07)', borderBottom: '1px solid rgba(20,22,26,.07)', background: '#fff' }}>
           <div className="wrap" style={{ paddingTop: 'clamp(72px,9vw,120px)', paddingBottom: 'clamp(72px,9vw,120px)' }}>
