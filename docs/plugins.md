@@ -196,9 +196,9 @@ Share the `.wakeguardplugin` file or host it at a stable HTTPS URL. Publish its 
 
 To propose a plugin for WakeGuard's catalog, open a pull request with its source and a reproducible package. Explain the permissions and how to test its behavior. Maintainers review catalog additions; adding a self-declared author name does not verify a publisher.
 
-Changes to plugin sources, catalog packages, review policy and publishing code require approval from [@myurtsev](https://github.com/myurtsev). New reviewable commits dismiss earlier approvals. Pull requests must pass the `native` check against an up-to-date `main` before merging. Direct pushes, force pushes and deletion of `main` are blocked; no actors can bypass these rules.
+Plugin sources, catalog packages, review policy and publishing code are assigned to [@myurtsev](https://github.com/myurtsev) in `CODEOWNERS`. Pull requests must pass the `native` check against an up-to-date `main` before merging. Direct pushes, force pushes and deletion of `main` are blocked; the main ruleset has no bypass actors. A pull request authored by the sole code owner can become mergeable without a separate review, so PR reviews are not the publication gate.
 
-Approval does not publish a plugin. The catalog updates after the approved pull request is merged into `main` and GitHub Pages deploys it. GitHub does not let authors approve their own pull requests, including changes made by an agent using the author's account.
+The remote catalog and landing page are published together by GitHub Pages. After a merge to `main`, the site builds and the `github-pages` deployment waits for approval from `@myurtsev`. In GitHub Actions, open **Deploy GitHub Pages**, select **Review deployments**, select `github-pages`, then choose **Approve and deploy**. Only `main` can deploy. The maintainer can approve deployments triggered by their own account; merging or approving a PR does not approve publication.
 
 For the repository's examples, generate packages at these paths:
 
