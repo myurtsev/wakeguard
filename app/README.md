@@ -1,4 +1,4 @@
-# WakeGuard 1.3.1
+# WakeGuard 1.3.2
 
 Standalone macOS menu bar app for Apple Silicon, macOS 13 or later. Built independently, with no external libraries, accounts or advertising. Core monitoring runs locally; the remote plugin catalog and enabled integrations can make network requests.
 
@@ -52,7 +52,7 @@ Codex is monitored using lifecycle metadata under `~/.codex/sessions`, without c
 
 Use **More options → Connect Claude Code** to add WakeGuard's status hooks to `~/.claude/settings.json`. Existing settings and hooks are preserved, and replaced settings receive a backup. Restart Claude Code sessions after connecting or disconnecting. A concurrent settings change reports its backup path.
 
-Claude's Stop event is a completion candidate. An idle confirmation and empty background/cron registries are required; completion typically takes about 90 seconds after the last work. Permission requests and other input requests remain active. Native Claude Code and connected node installations are supported. Unconnected node installations, disabled hooks, ordinary Claude chat and Cowork are not fully detectable. WakeGuard does not approve agent permissions.
+Claude's Stop event is a completion candidate. An idle confirmation and empty background/cron registries are required; completion typically takes about 90 seconds after the last work. Permission requests and other input requests remain active. Native Claude Code, including local sessions in the Claude desktop app, and connected node installations are supported. Unconnected node installations, disabled hooks, ordinary Claude chat and Cowork are not fully detectable. WakeGuard does not approve agent permissions.
 
 Lost events, uncertain state or missing tasks prevent automatic completion. The time limit and safety stops remain the fallback. Reconnecting Claude Code resets only WakeGuard's stored agent metadata.
 

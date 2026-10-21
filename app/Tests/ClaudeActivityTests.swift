@@ -139,11 +139,15 @@ private final class ClaudeParallelResults: @unchecked Sendable {
         let multiple = try ClaudeFixture()
         let second = ClaudeProcessIdentity(pid: 1_002, startedSeconds: 101, startedMicroseconds: 3)
         multiple.live[second.pid] = second
+        multiple.native = [multiple.identity, second]
+        assert(multiple.snapshot().observations.isEmpty && multiple.snapshot().unknownSources == 2)
         try multiple.emit("UserPromptSubmit")
+        assert(multiple.snapshot().activeCount == 1 && multiple.snapshot().unknownSources == 1)
         try multiple.emit("UserPromptSubmit", session: "second", process: second)
-        assert(multiple.snapshot().activeCount == 2)
+        assert(multiple.snapshot().activeCount == 2 && multiple.snapshot().unknownSources == 0)
         try multiple.emit("SessionEnd", session: "second", process: second)
         assert(multiple.snapshot().activeCount == 1)
+        multiple.native = [second]
         multiple.live.removeValue(forKey: multiple.identity.pid)
         assert(multiple.snapshot().unknownCount == 1) // Linked active records stay unknown without a live process.
         multiple.live[multiple.identity.pid] = ClaudeProcessIdentity(pid: multiple.identity.pid, startedSeconds: 200, startedMicroseconds: 0)
@@ -272,9 +276,13 @@ private final class ClaudeParallelResults: @unchecked Sendable {
 
         assert(ClaudeProcesses.isNativeCode("/Users/person/.local/share/claude/versions/2.1.292"))
         assert(ClaudeProcesses.isNativeCode("/usr/local/bin/claude"))
+        assert(ClaudeProcesses.isNativeCode("/Users/person/Library/Application Support/Claude/claude-code/2.1.304/6bbba6adc37f/claude.app/Contents/MacOS/claude"))
+        assert(ClaudeProcesses.isNativeCode("/Users/person/Library/Application Support/Claude/claude-code/2.2.0-preview.1/abcdef123456/claude.app/Contents/MacOS/claude"))
         assert(!ClaudeProcesses.isNativeCode("/usr/local/bin/node"))
         assert(!ClaudeProcesses.isNativeCode("/Applications/Claude.app/Contents/MacOS/Claude"))
         assert(!ClaudeProcesses.isNativeCode("/Applications/Claude Copy.app/Contents/MacOS/Claude"))
+        assert(!ClaudeProcesses.isNativeCode("/Applications/claude.app/Contents/MacOS/claude"))
+        assert(!ClaudeProcesses.isNativeCode("/Users/person/Library/Application Support/Other/claude-code/2.1.304/6bbba6adc37f/claude.app/Contents/MacOS/claude"))
         assert(!ClaudeProcesses.isPossibleCodeName("browser_crashpad_handler"))
         assert(!ClaudeProcesses.isPossibleCodeName("browser_crashpa")) // Truncated BSD comm must not become a Claude candidate.
         assert(!ClaudeProcesses.isPossibleCodeName("ordinary-app"))
