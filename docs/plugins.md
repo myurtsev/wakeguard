@@ -196,6 +196,10 @@ Share the `.wakeguardplugin` file or host it at a stable HTTPS URL. Publish its 
 
 To propose a plugin for WakeGuard's catalog, open a pull request with its source and a reproducible package. Explain the permissions and how to test its behavior. Maintainers review catalog additions; adding a self-declared author name does not verify a publisher.
 
+Changes to plugin sources, catalog packages, review policy and publishing code require approval from [@myurtsev](https://github.com/myurtsev). New reviewable commits dismiss earlier approvals. Pull requests must pass the `native` check against an up-to-date `main` before merging. Direct pushes, force pushes and deletion of `main` are blocked; no actors can bypass these rules.
+
+Approval does not publish a plugin. The catalog updates after the approved pull request is merged into `main` and GitHub Pages deploys it. GitHub does not let authors approve their own pull requests, including changes made by an agent using the author's account.
+
 For the repository's examples, generate packages at these paths:
 
 ```sh
