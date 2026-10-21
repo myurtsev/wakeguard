@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const ICON = `${import.meta.env.BASE_URL}wakeguard-icon.png`
 const SOURCE_URL = 'https://github.com/myurtsev/wakeguard'
-const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/v1.2.6-beta.1/WakeGuard.dmg`
+const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/v1.3.0-beta.1/WakeGuard.dmg`
 const BLUE = '#4d8dff', AMBER = '#f2b84b', GREEN = '#8fd19e', GREY = '#5c626d'
 
 const PHASES = [
@@ -464,7 +464,7 @@ export default function App() {
                 <Reveal as="a" delay={350} href={SOURCE_URL} className="link-arrow">View source on GitHub →</Reveal>
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', fontSize: 16, lineHeight: 1.5 }}>
-                {['Free and open source. No account and no subscription service.', 'No network requests.', 'Activity logs never contain prompts, responses or conversation content.'].map((t, i) => (
+                {['Free and open source. No account and no subscription service.', 'Core monitoring stays local. Optional plugins can connect to services you approve.', 'Activity logs never contain prompts, responses or conversation content.'].map((t, i) => (
                   <Reveal as="li" key={t} delay={150 + i * 110} className="slide" style={{ padding: '14px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,.1)' : 0, display: 'flex', gap: 14 }}><span aria-hidden="true" style={{ color: '#7fb0ff' }}>—</span><span>{t}</span></Reveal>
                 ))}
               </ul>
@@ -480,7 +480,7 @@ export default function App() {
               </div>
               <div className="stack" style={{ gap: 10, maxWidth: 320 }}>
                 <a href={DOWNLOAD_URL} className="btn-cta">Download for macOS</a>
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#a9aeb8' }}>Beta 1.2.6 · Not notarized; macOS may block opening. <a href={`${SOURCE_URL}#installation`} style={{ color: '#7fb0ff' }}>Installation notes</a></p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#a9aeb8' }}>Beta 1.3.0 · Not notarized; macOS may block opening. <a href={`${SOURCE_URL}#installation`} style={{ color: '#7fb0ff' }}>Installation notes</a></p>
               </div>
             </Reveal>
           </div>

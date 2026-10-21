@@ -1,0 +1,15 @@
+{
+  "apiVersion": 1,
+  "id": "com.example.my-plugin",
+  "name": "My plugin",
+  "version": "1.0.0",
+  "author": "Your name",
+  "description": "Shows the current WakeGuard session state.",
+  "permissions": {
+    "notifications": false,
+    "network": [],
+    "openURLs": false
+  },
+  "settings": [],
+  "commands": []
+}

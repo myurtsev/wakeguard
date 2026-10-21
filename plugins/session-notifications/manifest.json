@@ -1,0 +1,31 @@
+{
+  "apiVersion": 1,
+  "id": "io.github.myurtsev.session-notifications",
+  "name": "Session notifications",
+  "version": "1.0.0",
+  "author": "WakeGuard contributors",
+  "description": "Shows a macOS notification when a WakeGuard session starts or stops.",
+  "homepage": "https://github.com/myurtsev/wakeguard/tree/main/plugins/session-notifications",
+  "permissions": {
+    "notifications": true,
+    "network": [],
+    "openURLs": false
+  },
+  "settings": [
+    {
+      "key": "notifyOnStart",
+      "label": "Notify when a session starts",
+      "type": "toggle",
+      "required": false,
+      "defaultValue": "true"
+    },
+    {
+      "key": "notifyOnStop",
+      "label": "Notify when a session stops",
+      "type": "toggle",
+      "required": false,
+      "defaultValue": "true"
+    }
+  ],
+  "commands": []
+}

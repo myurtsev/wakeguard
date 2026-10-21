@@ -1,6 +1,6 @@
-# WakeGuard 1.2.6
+# WakeGuard 1.3.0
 
-Standalone macOS menu bar app for Apple Silicon, macOS 13 or later. Built independently, with no external libraries, accounts, advertising or network requests.
+Standalone macOS menu bar app for Apple Silicon, macOS 13 or later. Built independently, with no external libraries, accounts or advertising. Core monitoring runs locally; the remote plugin catalog and enabled integrations can make network requests.
 
 ## Install
 
@@ -27,6 +27,8 @@ This local build is ad-hoc signed and is not notarized by Apple. The embedded he
 - **Activity:** view recent status changes, sleep measurements and closed-lid summaries.
 
 The menu bar panel shows working agents separately from agents waiting for input. Unavailable status remains visible and prevents automatic completion.
+
+Open **More options → Plugins…** for the offline catalog, remote refresh, package import, permission review and per-plugin settings. Plugins are disabled after installation or update until you enable them. Read the [plugin guide](../docs/plugins.md) for the JavaScript API, examples and distribution instructions.
 
 Lock the Mac with **Control–Command–Q** before closing the lid. Display sleep does not explicitly lock the screen. Keep the Mac on a ventilated surface.
 

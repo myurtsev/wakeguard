@@ -1,0 +1,22 @@
+{
+  "apiVersion": 1,
+  "id": "io.github.myurtsev.agent-status",
+  "name": "Agent status",
+  "version": "1.0.0",
+  "author": "WakeGuard contributors",
+  "description": "Shows working, waiting and unavailable agent counts in Plugins.",
+  "homepage": "https://github.com/myurtsev/wakeguard/tree/main/plugins/agent-status",
+  "permissions": {
+    "notifications": false,
+    "network": [],
+    "openURLs": true
+  },
+  "settings": [],
+  "commands": [
+    {
+      "id": "detectionHelp",
+      "title": "Agent detection help"
+    }
+  ],
+  "script": "function onEvent(event, api) {\n    var agents = event.agents;\n    var parts = [];\n    if (agents.working > 0) parts.push(agents.working + \" working\");\n    if (agents.waiting > 0) parts.push(agents.waiting + \" waiting\");\n    if (agents.unknown > 0) parts.push(agents.unknown + \" unavailable\");\n    api.setStatus(parts.length > 0 ? parts.join(\" · \") : \"No active agents\");\n\n    if (event.type === \"command\" && event.command === \"detectionHelp\") {\n        api.openURL(\"https://github.com/myurtsev/wakeguard#agent-detection\");\n    }\n}\n"
+}
