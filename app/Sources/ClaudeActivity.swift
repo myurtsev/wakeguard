@@ -45,6 +45,8 @@ enum ClaudeProcesses {
 
     static func isNativeCode(_ path: String) -> Bool {
         let name = URL(fileURLWithPath: path).lastPathComponent.lowercased()
+        if path.contains("/Library/Application Support/Claude/claude-code/") &&
+            path.hasSuffix("/claude.app/Contents/MacOS/claude") { return true }
         if name == "claude" && path.contains(".app/Contents/MacOS/") { return false }
         if ["claude", "claude-code"].contains(name) && !path.contains("/Claude.app/") { return true }
         if path.contains("/.local/share/claude/versions/") {
