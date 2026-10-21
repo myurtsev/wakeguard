@@ -4,7 +4,7 @@
   "name": "My plugin",
   "version": "1.0.0",
   "author": "Your name",
-  "description": "Shows the current WakeGuard session state.",
+  "description": "Shows the current WakeGuard session state. Review policy verification.",
   "permissions": {
     "notifications": false,
     "network": [],
@@ -13,4 +13,3 @@
   "settings": [],
   "commands": []
 }
-
