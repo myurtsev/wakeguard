@@ -1,0 +1,21 @@
+{
+  "apiVersion": 1,
+  "id": "io.github.myurtsev.agent-status",
+  "name": "Agent status",
+  "version": "1.0.0",
+  "author": "WakeGuard contributors",
+  "description": "Shows working, waiting and unavailable agent counts in Plugins.",
+  "homepage": "https://github.com/myurtsev/wakeguard/tree/main/plugins/agent-status",
+  "permissions": {
+    "notifications": false,
+    "network": [],
+    "openURLs": true
+  },
+  "settings": [],
+  "commands": [
+    {
+      "id": "detectionHelp",
+      "title": "Agent detection help"
+    }
+  ]
+}

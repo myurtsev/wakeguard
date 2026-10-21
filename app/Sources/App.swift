@@ -1,8 +1,9 @@
 import AppKit
 import ServiceManagement
 import SwiftUI
+import UserNotifications
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     private let client = LeaseClient()
     private let defaults = UserDefaults.standard
     private var settings = WakeSettings()
@@ -11,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelController: NSHostingController<WakePanelView>!
     private let helperSetup = HelperSetup()
     private var activityWindow: ActivityWindowController?
+    private var pluginsWindow: PluginsWindowController?
+    private lazy var plugins = PluginManager()
     private var summaryWindow: SummaryWindowController?
     private var history: AuditHistory?
     private var lastReadSummaryID: String?
@@ -41,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         NSApp.setActivationPolicy(.accessory)
+        UNUserNotificationCenter.current().delegate = self
         untilAgents = defaults.bool(forKey: "untilAgents")
         if let data = defaults.data(forKey: "settings"),
            let stored = try? JSONDecoder().decode(WakeSettings.self, from: data),
@@ -59,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.action = #selector(togglePanel)
         statusItem.button?.sendAction(on: .leftMouseDown)
         claudeConnected = (try? ClaudeHooks.isEnabled()) ?? defaults.bool(forKey: "claudeConnected")
+        plugins.onChange = { [weak self] in self?.updateMenu() }
         tick()
         let timer = Timer(timeInterval: 2, target: self, selector: #selector(tick), userInfo: nil, repeats: true)
         RunLoop.main.add(timer, forMode: .common)
@@ -86,6 +91,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.close()
     }
 
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list])
+    }
+
     private func panelActions() -> PanelActions {
         PanelActions(main: { [weak self] in self?.toggleSession() },
             mode: { [weak self] value in
@@ -109,7 +119,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             uninstall: { [weak self] in self?.uninstall() },
             about: { [weak self] in self?.showAbout() },
             quit: { [weak self] in self?.quit() },
-            activity: { [weak self] in self?.showActivity() })
+            activity: { [weak self] in self?.showActivity() },
+            plugins: { [weak self] in self?.showPlugins() })
     }
 
     @objc private func tick() {
@@ -227,6 +238,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "WakeGuard: \(label)")
         statusItem.button?.image?.isTemplate = true
         statusItem.button?.toolTip = state.reason.isEmpty ? label : "\(label): \(state.reason)"
+        plugins.publish(PluginEvent(type: "snapshot", timestamp: Date().timeIntervalSince1970,
+            session: PluginSessionState(active: active, mode: status?.mode ?? "unavailable",
+                reason: localReason ?? status?.reason ?? "", onAC: status?.onAC, battery: status?.battery,
+                thermal: status?.thermal ?? "unknown", lidClosed: status?.lidClosed),
+            agents: PluginAgentCounts(working: agents.observations.filter { $0.state == .working }.count,
+                                     waiting: agents.waitingCount, unknown: agents.unknownCount), command: nil))
     }
 
     private func duration(_ seconds: Double) -> String {
@@ -323,6 +340,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             else { activityWindow?.update(activityPresentation()) }
             activityWindow?.present()
         } catch { showError(error.localizedDescription) }
+    }
+
+    private func showPlugins() {
+        popover.performClose(nil)
+        if pluginsWindow == nil { pluginsWindow = PluginsWindowController(manager: plugins) }
+        pluginsWindow?.present()
+    }
+
+    func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        guard filenames.count == 1 else { sender.reply(toOpenOrPrint: .failure); return }
+        showPlugins()
+        plugins.prepareInstall(file: URL(fileURLWithPath: filenames[0]))
+        sender.reply(toOpenOrPrint: .success)
     }
 
     private func toggleSession() {
@@ -549,12 +579,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
+        plugins.shutdown()
         if session != nil { try? send(enabled: false, uninstall: uninstallPending) }
     }
 }
 
 @main struct WakeGuardApp {
     static func main() {
+        if CommandLine.arguments.dropFirst() == ["--run-plugin"] {
+            PluginRuntime.runFromStandardInput()
+            return
+        }
         if CommandLine.arguments.dropFirst() == ["--claude-event"] {
             ClaudeEventReporter.run()
             return

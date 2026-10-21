@@ -33,6 +33,12 @@ swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/AgentActivity.swift Sources/
 "$BUILD/claude-tests"
 swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/Shared.swift Sources/ClaudeHooks.swift Tests/ClaudeHooksTests.swift -o "$BUILD/claude-hook-tests"
 "$BUILD/claude-hook-tests"
+swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/PluginModels.swift Sources/PluginRuntime.swift Tests/PluginRuntimeTests.swift -o "$BUILD/plugin-runtime-tests" -framework JavaScriptCore
+"$BUILD/plugin-runtime-tests" "$SOURCE/../public/plugins"
+swiftc -target "$NATIVE_ARCH-apple-macos13" Sources/PluginModels.swift Sources/PluginStore.swift Sources/PluginSecrets.swift Sources/PluginTransfer.swift Sources/PluginRuntime.swift Sources/PluginManager.swift Tests/PluginManagerTests.swift -o "$BUILD/plugin-manager-tests" -framework AppKit -framework Combine -framework Security -framework JavaScriptCore -framework UserNotifications -framework CryptoKit -framework LocalAuthentication
+"$BUILD/plugin-manager-tests" "$SOURCE/../public/plugins"
+python3 -B -m unittest discover -s "$SOURCE/../plugins" -p 'test_*.py'
+python3 -B "$SOURCE/../plugins/pack.py" verify "$SOURCE/../public/plugins/catalog.json"
 python3 Tests/InstallerTests.py
 bash -n "$SOURCE/Packaging/preinstall" "$SOURCE/Packaging/postinstall" "$SOURCE/build.sh"
 plutil -lint "$SOURCE/Packaging/Info.plist" "$SOURCE/Packaging/nl.local.WakeGuard.plist"
@@ -41,7 +47,8 @@ rm -rf "$APP" "$PAYLOAD"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$SOURCE/Packaging/Info.plist" "$APP/Contents/Info.plist"
 cp "$SOURCE/Packaging/WakeGuard.icns" "$APP/Contents/Resources/"
-swiftc -O -target arm64-apple-macos13 Sources/Shared.swift Sources/LeaseClient.swift Sources/Audit.swift Sources/AuditClient.swift Sources/HelperSetup.swift Sources/PanelView.swift Sources/AgentActivity.swift Sources/CodexActivity.swift Sources/ClaudeActivity.swift Sources/ClaudeHooks.swift Sources/App.swift -o "$APP/Contents/MacOS/WakeGuard" -framework AppKit -framework SwiftUI -framework ServiceManagement -framework Security
+cp -R "$SOURCE/../public/plugins" "$APP/Contents/Resources/Plugins"
+swiftc -O -target arm64-apple-macos13 Sources/Shared.swift Sources/LeaseClient.swift Sources/Audit.swift Sources/AuditClient.swift Sources/HelperSetup.swift Sources/PanelView.swift Sources/AgentActivity.swift Sources/CodexActivity.swift Sources/ClaudeActivity.swift Sources/ClaudeHooks.swift Sources/PluginModels.swift Sources/PluginStore.swift Sources/PluginSecrets.swift Sources/PluginTransfer.swift Sources/PluginRuntime.swift Sources/PluginManager.swift Sources/PluginsWindow.swift Sources/App.swift -o "$APP/Contents/MacOS/WakeGuard" -framework AppKit -framework SwiftUI -framework ServiceManagement -framework Security -framework JavaScriptCore -framework Combine -framework UserNotifications -framework CryptoKit -framework LocalAuthentication
 swiftc -O -target arm64-apple-macos13 Sources/Shared.swift Sources/Session.swift Sources/Audit.swift Sources/Helper.swift Sources/HelperMain.swift -o "$BUILD/nl.local.WakeGuard.helper" -framework Foundation -framework IOKit
 codesign --force --sign - "$BUILD/nl.local.WakeGuard.helper"
 mkdir -p "$PAYLOAD/Library/PrivilegedHelperTools" "$PAYLOAD/Library/LaunchDaemons" "$BUILD/scripts"

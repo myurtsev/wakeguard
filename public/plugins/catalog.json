@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "id": "io.github.myurtsev.agent-status",
+      "name": "Agent status",
+      "version": "1.0.0",
+      "author": "WakeGuard contributors",
+      "description": "Shows working, waiting and unavailable agent counts in Plugins.",
+      "url": "https://myurtsev.github.io/wakeguard/plugins/io.github.myurtsev.agent-status/1.0.0.wakeguardplugin",
+      "sha256": "33404a73dd088c8caf9a2d2e40a719d301a84f362ce0d49918be12e79a67c249"
+    },
+    {
+      "id": "io.github.myurtsev.session-notifications",
+      "name": "Session notifications",
+      "version": "1.0.0",
+      "author": "WakeGuard contributors",
+      "description": "Shows a macOS notification when a WakeGuard session starts or stops.",
+      "url": "https://myurtsev.github.io/wakeguard/plugins/io.github.myurtsev.session-notifications/1.0.0.wakeguardplugin",
+      "sha256": "91fcc3df2ef6b8b47eee685dfaaf24a5b3c1542707a789fed7712245fcbb59ac"
+    }
+  ]
+}

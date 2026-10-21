@@ -56,6 +56,7 @@ struct PanelActions {
     let about: () -> Void
     let quit: () -> Void
     let activity: () -> Void
+    let plugins: () -> Void
 }
 
 struct WakePanelView: View {
@@ -71,6 +72,8 @@ struct WakePanelView: View {
                 Text("WakeGuard").font(.headline)
                 Spacer()
                 Menu {
+                    Button("Plugins…", action: actions.plugins)
+                    Divider()
                     Button(state.claudeConnected ? "Disconnect Claude Code…" : "Connect Claude Code…") {
                         actions.claude(!state.claudeConnected)
                     }.disabled(!state.canChangeHooks)
