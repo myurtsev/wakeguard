@@ -141,8 +141,13 @@ final class CodexActivityReader {
     private var cache: [String: Cache] = [:]
     private var previous: [String: AgentObservation] = [:]
     private let uid = getuid()
-    private let sessions = FileManager.default.homeDirectoryForCurrentUser.path + "/.codex/sessions/"
+    private let sessions: String
     private let maximumRead = 8 * 1024 * 1024
+
+    init(sessionsDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent(".codex/sessions", isDirectory: true)) {
+        sessions = sessionsDirectory.path + "/"
+    }
 
     func snapshot() -> AgentSnapshot {
         let now = Date().timeIntervalSince1970
@@ -257,10 +262,10 @@ final class CodexActivityReader {
             metadata.st_size < $0.size || (metadata.st_size == $0.size &&
                 (metadata.st_mtimespec.tv_sec != $0.modified.tv_sec || metadata.st_mtimespec.tv_nsec != $0.modified.tv_nsec))
         } ?? false
-        let reset = item?.writer != writer || item?.path != path || item?.invalidated == true || overwritten ||
-            metadata.st_size - (item?.offset ?? metadata.st_size) > maximumRead
+        let reset = item?.writer != writer || item?.path != path || item?.invalidated == true || overwritten
         if let closedTurnID {
             guard !reset, item?.parser.state == .working, item?.parser.turnID == closedTurnID,
+                  metadata.st_size - (item?.offset ?? 0) <= maximumRead,
                   Self.identityHasExited(pid: writer.pid, startedAt: writer.startedAt) else { return nil }
         }
         if reset {
@@ -275,21 +280,27 @@ final class CodexActivityReader {
                          size: metadata.st_size, modified: metadata.st_mtimespec,
                          observationID: "codex:\(key):\(parser.sessionID)")
         }
-        guard var value = item, metadata.st_size - value.offset <= maximumRead,
-              var bytes = data(fd: fd, offset: value.offset, count: Int(metadata.st_size - value.offset)) else { return nil }
-        if reset {
-            if value.offset > 0 {
-                guard let newline = bytes.firstIndex(of: 10) else { return nil }
-                value.offset += off_t(newline + 1)
-                bytes = Data(bytes[(newline + 1)...])
-            }
+        guard var value = item,
+              var bytes = data(fd: fd, offset: value.offset,
+                               count: Int(min(off_t(maximumRead), metadata.st_size - value.offset))) else { return nil }
+        let initialParser = value.parser
+        let truncatedStart = reset && value.offset > 0
+        if truncatedStart {
+            guard let newline = bytes.firstIndex(of: 10) else { return nil }
+            value.offset += off_t(newline + 1)
+            bytes = Data(bytes[(newline + 1)...])
         }
         var state = value.parser.state
         if !bytes.isEmpty {
             guard let newline = bytes.lastIndex(of: 10) else { return nil }
             value.parser.append(Data(bytes[...newline]))
             value.offset += off_t(newline + 1)
-            state = newline == bytes.index(before: bytes.endIndex) ? value.parser.state : .unknown
+            state = value.offset == metadata.st_size ? value.parser.state : .unknown
+        }
+        if truncatedStart && value.parser.turnID == nil {
+            value.parser = initialParser
+            value.offset = 0
+            state = .unknown
         }
         var after = stat()
         guard fstat(fd, &after) == 0, Self.validFile(after, uid: uid, device: device, inode: inode),

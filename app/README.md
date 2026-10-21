@@ -1,4 +1,4 @@
-# WakeGuard 1.3.2
+# WakeGuard 1.3.3
 
 Standalone macOS menu bar app for Apple Silicon, macOS 13 or later. Built independently, with no external libraries, accounts or advertising. Core monitoring runs locally; the remote plugin catalog and enabled integrations can make network requests.
 
@@ -48,7 +48,7 @@ System sleep is measured from the difference between macOS clocks that include a
 
 Start a local agent task, select **Until agents finish**, then click **Start**. All known tasks must finish; new work resets the completion wait. After 30 seconds of confirmed inactivity, WakeGuard stops sleep prevention. With the lid closed, it requests system sleep. With the lid open, it only stops sleep prevention. Battery, thermal and time limits always apply.
 
-Codex is monitored using lifecycle metadata under `~/.codex/sessions`, without changing Codex configuration. This is an internal, version-dependent format. Only persisted local turns with recognized writers are covered. Custom `CODEX_HOME` profiles, ephemeral runs, cloud tasks and future scheduled work are outside detection. A disappeared active writer without a proven matching completion remains unknown.
+Codex is monitored using lifecycle metadata under `~/.codex/sessions`, without changing Codex configuration. This is an internal, version-dependent format. Only persisted local turns with recognized writers are covered. Custom `CODEX_HOME` profiles, ephemeral runs, cloud tasks and future scheduled work are outside detection. A disappeared active writer without a proven matching completion remains unknown. Large logs are read in bounded chunks after startup; status remains unavailable until the lifecycle is verified.
 
 Use **More options → Connect Claude Code** to add WakeGuard's status hooks to `~/.claude/settings.json`. Existing settings and hooks are preserved, and replaced settings receive a backup. Restart Claude Code sessions after connecting or disconnecting. A concurrent settings change reports its backup path.
 
