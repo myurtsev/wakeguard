@@ -1,0 +1,21 @@
+# Plugin source, packages and catalog.
+/plugins/ @myurtsev
+/public/plugins/ @myurtsev
+
+# Review policy and workflows.
+/.github/ @myurtsev
+
+# Pages executes the website sources during prerendering.
+/src/ @myurtsev
+/prerender.js @myurtsev
+/vite.config.* @myurtsev
+/postcss.config.* @myurtsev
+/.postcssrc* @myurtsev
+/package.json @myurtsev
+/package-lock.json @myurtsev
+/npm-shrinkwrap.json @myurtsev
+/.npmrc @myurtsev
+/.env* @myurtsev
+/tsconfig*.json @myurtsev
+/jsconfig*.json @myurtsev
+/app/build.sh @myurtsev
