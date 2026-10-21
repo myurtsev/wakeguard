@@ -9,6 +9,8 @@
 /src/ @myurtsev
 /prerender.js @myurtsev
 /vite.config.* @myurtsev
+/postcss.config.* @myurtsev
+/.postcssrc* @myurtsev
 /package.json @myurtsev
 /package-lock.json @myurtsev
 /npm-shrinkwrap.json @myurtsev
