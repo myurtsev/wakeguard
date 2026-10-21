@@ -385,3 +385,4 @@ final class SummaryWindowController: NSWindowController {
         window?.makeKeyAndOrderFront(nil)
     }
 }
+
