@@ -1,6 +1,80 @@
 import Foundation
 import Darwin
 
+private final class CodexReaderFixture {
+    let root: URL
+    let process = Process()
+    let input = Pipe()
+    var directory: URL { root.appendingPathComponent("sessions", isDirectory: true) }
+    var rollout: URL { directory.appendingPathComponent("rollout-fixture.jsonl") }
+    var startedAt = 0.0
+
+    init() throws {
+        guard let temporaryPath = realpath(FileManager.default.temporaryDirectory.path, nil) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        root = URL(fileURLWithPath: String(cString: temporaryPath), isDirectory: true)
+            .appendingPathComponent("WakeGuard-CodexTests-\(UUID().uuidString)")
+        free(temporaryPath)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
+        let executable = root.appendingPathComponent("codex")
+        try FileManager.default.copyItem(at: URL(fileURLWithPath: CommandLine.arguments[0]), to: executable)
+        guard chmod(executable.path, 0o700) == 0 else { throw CocoaError(.fileWriteUnknown) }
+        let ready = Pipe()
+        process.executableURL = executable
+        process.arguments = ["--fixture-writer", rollout.path]
+        process.standardInput = input
+        process.standardOutput = ready
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        try input.fileHandleForReading.close()
+        try ready.fileHandleForWriting.close()
+        var descriptor = pollfd(fd: ready.fileHandleForReading.fileDescriptor, events: Int16(POLLIN), revents: 0)
+        guard poll(&descriptor, 1, 5_000) > 0,
+              try ready.fileHandleForReading.read(upToCount: 1) == Data([1]) else {
+            stop()
+            throw CocoaError(.fileReadUnknown)
+        }
+        try ready.fileHandleForReading.close()
+        var info = proc_bsdinfo()
+        guard proc_pidinfo(process.processIdentifier, PROC_PIDTBSDINFO, 0, &info,
+                           Int32(MemoryLayout<proc_bsdinfo>.size)) == MemoryLayout<proc_bsdinfo>.size else {
+            stop()
+            throw CocoaError(.fileReadUnknown)
+        }
+        startedAt = Double(info.pbi_start_tvsec) + Double(info.pbi_start_tvusec) / 1_000_000
+    }
+
+    deinit {
+        stop()
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    func stop() {
+        try? input.fileHandleForWriting.close()
+        if process.isRunning { process.waitUntilExit() }
+    }
+
+    func append(_ data: Data) throws {
+        let file = try FileHandle(forWritingTo: rollout)
+        defer { try? file.close() }
+        try file.seekToEnd()
+        try file.write(contentsOf: data)
+        try file.synchronize()
+    }
+
+    func id(_ sequence: UInt64) -> String {
+        let time = UInt64(ceil((startedAt + Double(sequence)) * 1_000))
+        return String(format: "%08llx-%04llx-7000-8000-%012llx", time >> 16, time & 0xffff, sequence)
+    }
+
+    func event(_ type: String, turn: UInt64 = 2) -> Data {
+        CodexActivityTests.event(type, id: id(turn), start: ceil(startedAt) + Double(turn),
+                                 end: ceil(startedAt) + Double(turn) + 1)
+    }
+}
+
 @main struct CodexActivityTests {
     static let session = "00000001-86a0-7000-8000-000000000001"
     static let parent = "00000001-5f90-7000-8000-000000000002"
@@ -23,7 +97,15 @@ import Darwin
         CodexRolloutParser.parse(header: meta(), tail: data, writerStartedAt: writerStart, truncatedStart: truncated)!
     }
 
-    static func main() {
+    static func main() throws {
+        if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "--fixture-writer" {
+            let descriptor = open(CommandLine.arguments[2], O_WRONLY | O_CREAT | O_APPEND | O_NOFOLLOW, 0o600)
+            guard descriptor >= 0 else { exit(1) }
+            defer { close(descriptor) }
+            try FileHandle.standardOutput.write(contentsOf: Data([1]))
+            while let bytes = try FileHandle.standardInput.read(upToCount: 1), !bytes.isEmpty {}
+            return
+        }
         if CommandLine.arguments.contains("--snapshot") {
             let snapshot = CodexActivityReader().snapshot()
             print("Codex snapshot: \(snapshot.observations.count) sources, \(snapshot.activeCount) active, \(snapshot.unknownCount) unknown")
@@ -121,6 +203,70 @@ import Darwin
         assert(!CodexActivityReader.identityHasExited(pid: getpid(), startedAt: ownStart))
         assert(CodexActivityReader.identityHasExited(pid: getpid(), startedAt: ownStart - 1))
         assert(CodexActivityReader.identityHasExited(pid: Int32.max, startedAt: 1))
+        try readerChecks()
         print("Codex lifecycle metadata checks passed")
+    }
+
+    static func check(_ condition: Bool, _ message: String) throws {
+        if !condition { throw NSError(domain: "CodexActivityTests", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
+    }
+
+    static func padding(_ size: Int) -> Data {
+        let line = record("response_item", ["padding": String(repeating: "x", count: 65_536)])
+        let overhead = record("response_item", ["padding": ""]).count
+        var result = Data()
+        while result.count + line.count <= size - overhead { result.append(line) }
+        result.append(record("response_item", ["padding": String(repeating: "x", count: size - result.count - overhead)]))
+        return result
+    }
+
+    static func readerChecks() throws {
+        let block = padding(8 * 1_024 * 1_024)
+        let large = padding(9 * 1_024 * 1_024)
+        do {
+            let fixture = try CodexReaderFixture()
+            try fixture.append(meta(fixture.id(1)) + fixture.event("task_started") + large + fixture.event("task_complete"))
+            let reader = CodexActivityReader(sessionsDirectory: fixture.directory)
+            let first = reader.snapshot()
+            try check(first.unknownCount == 1, "Cold truncated lifecycle must start unknown: \(first.observations.count) observations, \(first.unknownCount) unknown")
+            try check(reader.snapshot().unknownCount == 1, "Incomplete bootstrap must remain unknown")
+            let completed = reader.snapshot()
+            try check(completed.observations.count == 1 && completed.observations.first?.state == .idle && completed.unknownCount == 0,
+                      "Bounded bootstrap must recover matching large completed turn")
+        }
+        do {
+            let fixture = try CodexReaderFixture()
+            try fixture.append(meta(fixture.id(1)) + fixture.event("task_started") + fixture.event("task_complete"))
+            let reader = CodexActivityReader(sessionsDirectory: fixture.directory)
+            try check(reader.snapshot().observations.first?.state == .idle, "Ordinary completion must remain readable")
+            try fixture.append(block + fixture.event("task_started", turn: 3))
+            try check(reader.snapshot().unknownCount == 1, "Terminal before unread backlog must not report idle")
+            try check(reader.snapshot().activeCount == 1, "Contiguous backlog must reach later active turn")
+            let terminal = fixture.event("task_complete", turn: 3)
+            try fixture.append(terminal.dropLast())
+            try check(reader.snapshot().unknownCount > 0, "Partial terminal must remain unknown")
+            try fixture.append(Data([10]))
+            try check(reader.snapshot().observations.first?.state == .idle, "Completed partial line must recover")
+        }
+        do {
+            let fixture = try CodexReaderFixture()
+            try fixture.append(meta(fixture.id(1)) + fixture.event("task_started") + large +
+                               Data("broken\n".utf8) + record("unknown_record", [:]) + fixture.event("task_complete"))
+            let reader = CodexActivityReader(sessionsDirectory: fixture.directory)
+            for _ in 0..<4 {
+                try check(reader.snapshot().unknownCount == 1, "Bootstrap must retain malformed or unknown record gaps")
+            }
+        }
+        do {
+            let fixture = try CodexReaderFixture()
+            try fixture.append(meta(fixture.id(1)) + fixture.event("task_started") + block + large + fixture.event("task_complete"))
+            let reader = CodexActivityReader(sessionsDirectory: fixture.directory)
+            try check(reader.snapshot().unknownCount == 1, "Closed bootstrap must begin unknown")
+            try check(reader.snapshot().unknownCount == 1, "Closed bootstrap must not finish before EOF")
+            fixture.stop()
+            for _ in 0..<2 {
+                try check(reader.snapshot().unknownCount > 0, "Exited writer cannot prove incomplete bootstrap finished")
+            }
+        }
     }
 }
