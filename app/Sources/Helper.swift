@@ -74,7 +74,7 @@ func rootWrite(_ path: String, data: Data, mode: mode_t, owner: uid_t = 0) throw
 
 func command(_ executable: String, _ arguments: [String]) throws -> String {
     let allowed = executable == "/usr/bin/pmset" &&
-        [["-a", "disablesleep", "0"], ["-a", "disablesleep", "1"], ["displaysleepnow"], ["sleepnow"]].contains(arguments)
+        [["-a", "disablesleep", "0"], ["-a", "disablesleep", "1"], ["sleepnow"]].contains(arguments)
     guard allowed else { throw HelperError.message("Command not allowed") }
     let process = Process()
     let output = Pipe(), errors = Pipe()
@@ -234,7 +234,6 @@ final class Helper {
     let generation = UUID().uuidString
     let uid: UInt32
     let session: WakeSession
-    private var lastDisplaySleep = 0.0
     private var lastStatusWrite = 0.0
     private var previousMode = ""
     private var previousReason = ""
@@ -368,10 +367,6 @@ final class Helper {
                     }
                 } else if !disabled {
                     throw HelperError.message("Sleep state changed; start again")
-                }
-                if request?.settings.darkenDisplays == true && lidClosed() == true && uptime - lastDisplaySleep >= 5 {
-                    _ = try command("/usr/bin/pmset", ["displaysleepnow"])
-                    lastDisplaySleep = uptime
                 }
             } else if owned {
                 try restoreOwnedSleep()

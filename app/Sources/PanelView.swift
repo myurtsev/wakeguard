@@ -46,7 +46,6 @@ struct PanelActions {
     let mode: (Bool) -> Void
     let ac: (Bool) -> Void
     let battery: (Bool) -> Void
-    let darken: (Bool) -> Void
     let login: (Bool) -> Void
     let floor: (Int) -> Void
     let duration: (Int) -> Void
@@ -57,6 +56,7 @@ struct PanelActions {
     let quit: () -> Void
     let activity: () -> Void
     let plugins: () -> Void
+    let computerUse: () -> Void
 }
 
 private struct SettingsDisclosureStyle: DisclosureGroupStyle {
@@ -184,8 +184,8 @@ struct WakePanelView: View {
                             Text(value == 0 ? "No time limit" : "\(value) minutes").tag(value)
                         }
                     }
-                    Toggle("Turn displays off with lid closed", isOn: Binding(get: { state.settings.darkenDisplays }, set: actions.darken))
                     Toggle(state.loginTitle, isOn: Binding(get: { state.login }, set: actions.login))
+                    Button("Codex setup…", action: actions.computerUse).buttonStyle(.borderless)
                 }
                 .padding(.top, 10)
                 .toggleStyle(.checkbox)
@@ -222,6 +222,81 @@ struct WakePanelView: View {
             Spacer(minLength: 8)
             Text(value).multilineTextAlignment(.trailing)
         }.font(.callout)
+    }
+}
+
+struct ComputerUseSetupView: View {
+    let status: String
+    let awake: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Codex setup").font(.title2.weight(.semibold))
+            Text("For desktop app control with the lid closed.")
+                .font(.callout).foregroundStyle(.secondary)
+            Divider()
+            step("1", title: "Set up Computer Use",
+                 detail: "In Codex, install the Computer Use plugin. Allow macOS Screen Recording and Accessibility when prompted.")
+            step("2", title: "Enable Locked use",
+                 detail: "In Codex, open Settings → Computer use.")
+            step("3", title: "Allow the apps you need",
+                 detail: "Choose Always allow when Codex requests access to an app you want it to use in future tasks.")
+            VStack(alignment: .leading, spacing: 6) {
+                step("4", title: "Start WakeGuard",
+                     detail: "Check your power and time limits, then start a session.")
+                Label(status, systemImage: awake ? "checkmark.circle.fill" : "circle")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .padding(.leading, 28)
+            }
+            step("5", title: "Lock before closing the lid",
+                 detail: "Press Control–Command–Q, then close the lid.")
+            Divider()
+            Text("Browser screenshots can work even when desktop app control is unavailable. WakeGuard cannot verify Codex permissions.")
+                .font(.callout).foregroundStyle(.secondary)
+            Link("Computer use guide", destination: URL(string: "https://learn.chatgpt.com/docs/computer-use")!)
+        }
+        .padding(20)
+        .frame(width: 460)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func step(_ number: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number).foregroundStyle(.secondary).frame(width: 16)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline)
+                Text(detail).font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+final class ComputerUseSetupWindowController: NSWindowController {
+    private let content: NSHostingController<ComputerUseSetupView>
+
+    init() {
+        content = NSHostingController(rootView: ComputerUseSetupView(status: "Off", awake: false))
+        content.sizingOptions.insert(.preferredContentSize)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 480),
+                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        super.init(window: window)
+        window.title = "WakeGuard — Codex setup"
+        window.isReleasedWhenClosed = false
+        window.contentViewController = content
+        window.setContentSize(content.view.fittingSize)
+        window.center()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func update(status: String, awake: Bool) {
+        content.rootView = ComputerUseSetupView(status: status, awake: awake)
+    }
+
+    func present() {
+        showWindow(nil)
+        window?.makeKeyAndOrderFront(nil)
     }
 }
 

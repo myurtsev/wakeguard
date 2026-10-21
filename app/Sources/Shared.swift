@@ -1,5 +1,5 @@
 enum WakePaths {
-    static let helperProtocol = 5
+    static let helperProtocol = 6
     static let bundleID = "nl.local.WakeGuard"
     static let directory = "/var/db/nl.local.WakeGuard"
     static let config = directory + "/config.json"
@@ -18,16 +18,28 @@ struct WakeSettings: Codable, Equatable {
     var onAC: Bool
     var onBattery: Bool
     var batteryFloor: Int
-    var darkenDisplays: Bool
+    // Older helpers require this key; never request display sleep during an update.
+    private let darkenDisplays = false
     var sessionMinutes: Int
 
     init(onAC: Bool = true, onBattery: Bool = false, batteryFloor: Int = 20,
-         darkenDisplays: Bool = true, sessionMinutes: Int = 60) {
+         sessionMinutes: Int = 60) {
         self.onAC = onAC
         self.onBattery = onBattery
         self.batteryFloor = batteryFloor
-        self.darkenDisplays = darkenDisplays
         self.sessionMinutes = sessionMinutes
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case onAC, onBattery, batteryFloor, darkenDisplays, sessionMinutes
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(onAC: try values.decode(Bool.self, forKey: .onAC),
+                  onBattery: try values.decode(Bool.self, forKey: .onBattery),
+                  batteryFloor: try values.decode(Int.self, forKey: .batteryFloor),
+                  sessionMinutes: try values.decode(Int.self, forKey: .sessionMinutes))
     }
 }
 

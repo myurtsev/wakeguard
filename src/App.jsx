@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const ICON = `${import.meta.env.BASE_URL}wakeguard-icon.png`
 const SOURCE_URL = 'https://github.com/myurtsev/wakeguard'
-const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/v1.3.3-beta.1/WakeGuard.dmg`
+const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/v1.3.4-beta.1/WakeGuard.dmg`
 const BLUE = '#4d8dff', AMBER = '#f2b84b', GREEN = '#8fd19e', GREY = '#5c626d'
 
 const PHASES = [
@@ -127,7 +127,6 @@ function Panel() {
           </div>
           <div className="row" style={{ gap: 8 }}>Battery limit <span className="select">20% ⌄</span></div>
           <div className="row" style={{ gap: 8 }}>Time limit <span className="select">2 hours ⌄</span></div>
-          <span className="row" style={{ gap: 7 }}><Check />Turn displays off with lid closed</span>
         </div>
       </div></div>
       <div className="hr" style={{ margin: '12px 0 10px' }} />
@@ -685,7 +684,7 @@ export default function App() {
               </div>
               <div className="stack" style={{ gap: 10, maxWidth: 320 }}>
                 <a href={DOWNLOAD_URL} className="btn-cta">Download for macOS</a>
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#a9aeb8' }}>Beta 1.3.3 · Not notarized; macOS may block opening. <a href={`${SOURCE_URL}#installation`} style={{ color: '#7fb0ff' }}>Installation notes</a></p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#a9aeb8' }}>Beta 1.3.4 · Not notarized; macOS may block opening. <a href={`${SOURCE_URL}#installation`} style={{ color: '#7fb0ff' }}>Installation notes</a></p>
               </div>
             </Reveal>
           </div>
