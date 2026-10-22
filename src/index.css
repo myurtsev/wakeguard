@@ -43,7 +43,7 @@ button{font:inherit}
 .link-arrow:hover{color:#a9c9ff}
 
 /* hero */
-.hero{padding-top:clamp(48px,8vw,104px);padding-bottom:clamp(64px,8vw,112px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:clamp(48px,6vw,80px);align-items:center}
+.hero{padding-top:clamp(48px,7vw,96px);padding-bottom:clamp(64px,8vw,112px);display:flex;flex-wrap:wrap;gap:clamp(44px,5vw,64px);align-items:center}
 .pill{display:inline-flex;align-self:flex-start;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;background:#fff;border:1px solid rgba(20,22,26,.08);font-size:13px;color:#3d424b}
 .h1{margin:0;font-size:clamp(42px,6.2vw,72px);line-height:1.02;letter-spacing:-.035em;font-weight:700;text-wrap:balance}
 .frame{position:relative;border-radius:28px;background:linear-gradient(160deg,#dfe7f3 0%,#c9d6ea 55%,#b9c9e2 100%);border:1px solid rgba(20,22,26,.06);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 40px 80px -40px rgba(20,40,80,.35);padding:clamp(52px,7vw,64px) clamp(16px,4vw,40px) clamp(28px,4vw,40px);overflow:hidden}
@@ -244,8 +244,52 @@ button{font:inherit}
 .pl-punct{color:#8a909b}
 .pl-line{display:block}
 /* code types itself in, line by line, once the card is in view */
-.js .pl-dev .pl-line{opacity:0;transform:translate3d(-8px,0,0);clip-path:inset(0 100% 0 0);transition:opacity .3s var(--ease),transform .6s var(--ease),clip-path .9s steps(28,end);transition-delay:calc(400ms + var(--i) * 700ms)}
-.js .pl-dev.in .pl-line{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
+.js .pl-dev .pl-line,.js .cap-term .pl-line{opacity:0;transform:translate3d(-8px,0,0);clip-path:inset(0 100% 0 0);transition:opacity .3s var(--ease),transform .6s var(--ease),clip-path .9s steps(28,end);transition-delay:calc(400ms + var(--i) * 700ms)}
+.js .pl-dev.in .pl-line,.js .cap.in .cap-term .pl-line{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
 .pl-caret{display:inline-block;width:.55em;height:1.1em;margin-left:4px;vertical-align:-.2em;background:#7fb0ff;animation:plBlink 1s steps(1) infinite}
 @keyframes plBlink{50%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.js .pl-dev .pl-line{opacity:1!important;transform:none!important;clip-path:none!important}}
+@media (prefers-reduced-motion:reduce){.js .pl-dev .pl-line,.js .cap-term .pl-line{opacity:1!important;transform:none!important;clip-path:none!important}}
+
+/* v2 hero: lid demo */
+.lid-stage{position:relative;width:260px;height:320px;margin:-56px 0 -24px;perspective:1300px;perspective-origin:50% -20%;transform:scale(.64);transform-origin:50% 60%}
+.lid-shadow{position:absolute;left:50%;bottom:0;width:380px;height:40px;margin-left:-190px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(20,40,80,.32) 0%,rgba(20,40,80,0) 70%)}
+.lid-hinge{position:absolute;left:50%;top:218px;width:340px;height:0;margin-left:-170px;transform-style:preserve-3d}
+.lid-base{position:absolute;left:0;top:0;width:340px;height:200px;transform-origin:50% 0;transform:rotateX(76deg);border-radius:14px;background:linear-gradient(180deg,#e9ecf0 0%,#cdd2d9 100%);box-shadow:inset 0 0 0 1px rgba(20,22,26,.10)}
+.lid{position:absolute;left:0;top:-204px;width:340px;height:200px;transform-origin:50% 100%;transition:transform 2.8s cubic-bezier(.45,0,.2,1);transform-style:preserve-3d}
+.lid-screen{position:absolute;inset:0;border-radius:14px;background:#1b1e24;border:7px solid #2b2f36;overflow:hidden;z-index:1;transition:opacity .25s ease}
+.lid-screen>div{position:absolute;height:6px;border-radius:2px}
+.lid-back{position:absolute;inset:0;border-radius:14px;background:linear-gradient(180deg,#f2f4f7 0%,#d3d8df 100%);box-shadow:inset 0 0 0 1px rgba(20,22,26,.10)}
+.lid-chip{display:inline-flex;align-items:center;gap:12px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.95);border-radius:16px;padding:8px 14px 8px 8px;color:#14161a;box-shadow:0 12px 26px -14px rgba(20,40,80,.45);max-width:100%}
+.lid-label{font-size:12.5px;color:#4a505a;animation:plIn .5s var(--ease) both}
+.tick{display:inline-block;animation:plIn .45s var(--ease) both}
+.beta{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:#1462e0;border-radius:999px;padding:2px 8px}
+.beta.soft{font-weight:650;color:#1462e0;background:#e8eefa;padding:2px 7px}
+.info-note{margin:0;display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:#4a505a;max-width:34em;text-wrap:pretty}
+.info-i{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid #8a909b;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#5b616b;margin-top:1px}
+
+/* capabilities */
+.cap-illus{height:140px;border-radius:14px;background:#f1f3f6;padding:16px;display:flex;align-items:center;justify-content:center}
+.mini-win{width:100%;max-width:240px;background:#fff;border-radius:9px;border:1px solid rgba(20,22,26,.08);box-shadow:0 8px 16px -12px rgba(20,40,80,.35);overflow:hidden}
+.mini-bar{display:flex;gap:5px;align-items:center;padding:6px 8px;background:#f6f7f9;border-bottom:1px solid rgba(20,22,26,.06)}
+.mini-url{flex:1;font-size:10.5px;color:#4a505a;background:#fff;border:1px solid rgba(20,22,26,.08);border-radius:5px;padding:2px 7px;font-family:ui-monospace,'SF Mono',Menlo,monospace}
+/* desktop apps: Codex's focus steps through the messages */
+.cap-focus{border-radius:3px;outline:1.5px solid transparent;outline-offset:3px}
+.cap-focus:nth-child(2){outline-color:#1462e0}
+.cap.in .cap-focus,.cap.in .cap-focus:nth-child(2){outline-color:transparent;animation:capFocus 4.5s var(--ease) infinite;animation-delay:calc(var(--i) * 1.5s)}
+@keyframes capFocus{0%,100%{outline-color:transparent}8%,30%{outline-color:#1462e0}38%{outline-color:transparent}}
+/* browser: screenshots are captured one after another, with a shutter flash */
+.cap-shot{height:34px;border-radius:4px;background:#e8eefa;display:block;outline:1.5px solid transparent;outline-offset:2px}
+.cap-shot:nth-child(3){outline-color:#1462e0}
+.cap.in .cap-shot,.cap.in .cap-shot:nth-child(3){outline-color:transparent;animation:capShot 3.6s linear infinite;animation-delay:calc(var(--i) * 1.2s)}
+@keyframes capShot{0%{outline-color:#1462e0;background:#fff}8%{background:#e8eefa}33%{outline-color:#1462e0}34%,100%{outline-color:transparent;background:#e8eefa}}
+/* terminal: lines type in, then the deploy dots tick */
+.cap-term{background:#0f1115;padding:16px 18px;flex-direction:column;align-items:stretch;justify-content:center;gap:5px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;line-height:1.5;color:#c9ced6}
+.js .cap-term .pl-line{transition-delay:calc(500ms + var(--i) * 550ms)}
+.cap.in .cap-deploying span{animation:plBlink 1.2s steps(1) infinite}
+.cap.in .cap-deploying span:nth-child(2){animation-delay:.2s}
+.cap.in .cap-deploying span:nth-child(3){animation-delay:.4s}
+
+/* how it works: the lock shortcut presses itself */
+.key{display:inline-flex;align-items:center;padding:1px 8px;border-radius:6px;background:#fff;border:1px solid rgba(20,22,26,.16);box-shadow:0 1px 0 rgba(20,22,26,.16);font-size:13px;font-weight:600;color:#14161a;white-space:nowrap}
+.step.in .key{animation:keyPress 3.2s var(--ease) infinite;animation-delay:calc(1s + var(--i) * 140ms)}
+@keyframes keyPress{0%,24%,100%{transform:none;box-shadow:0 1px 0 rgba(20,22,26,.16);background:#fff}6%,18%{transform:translateY(1px);box-shadow:0 0 0 rgba(20,22,26,.16);background:#e8eefa}}

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 
 const ICON = `${import.meta.env.BASE_URL}wakeguard-icon.png`
 const SOURCE_URL = 'https://github.com/myurtsev/wakeguard'
-const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/v1.3.4-beta.1/WakeGuard.dmg`
+const RELEASE = 'v1.3.4-beta.1'
+const DOWNLOAD_URL = `${SOURCE_URL}/releases/download/${RELEASE}/WakeGuard.dmg`
+const RELEASE_URL = `${SOURCE_URL}/releases/tag/${RELEASE}`
 const BLUE = '#4d8dff', AMBER = '#f2b84b', GREEN = '#8fd19e', GREY = '#5c626d'
 
 const PHASES = [
@@ -68,14 +70,57 @@ const SunRays = ({ stroke, width, diagonals }) => (
   </g>
 )
 
-function Panel() {
-  const [awake, setAwake] = useState(true)
-  const [agents, setAgents] = useState(true)
+// Hero demo loop: 0 lid open → 1–3 lid closed, agents working → 4 an agent waits for input.
+const DEMO_STEPS = [4200, 4200, 3600, 3600, 4400]
+const DEMO_TIMES = ['22:14', '22:16', '22:31', '22:46', '22:51']
+
+function useDemo() {
+  const [step, setStep] = useState(0)
+  const [run, setRun] = useState(0)
+  useEffect(() => {
+    if (reducedMotion()) { setStep(2); return }
+    let t
+    const tick = s => { t = setTimeout(() => { const n = (s + 1) % DEMO_STEPS.length; setStep(n); tick(n) }, DEMO_STEPS[s]) }
+    setStep(0)
+    tick(0)
+    return () => clearTimeout(t)
+  }, [run])
+  return [step, () => setRun(r => r + 1)]
+}
+
+function LidStage({ step }) {
+  const open = step === 0
+  return (
+    <div className="lid-stage" aria-hidden="true">
+      <div className="lid-shadow" />
+      <div className="lid-hinge">
+        <div className="lid-base">
+          <div style={{ position: 'absolute', left: 20, right: 20, top: 18, height: 82, borderRadius: 7, background: '#3a3f47', opacity: 0.85 }} />
+          <div style={{ position: 'absolute', left: 110, right: 110, top: 114, height: 64, borderRadius: 7, background: '#d7dbe1', boxShadow: 'inset 0 0 0 1px rgba(20,22,26,.08)' }} />
+        </div>
+        <div className="lid" style={{ transform: open ? 'rotateX(12deg)' : 'rotateX(-104deg)' }}>
+          <div className="lid-screen" style={{ opacity: open ? 1 : 0, transitionDelay: open ? '1.6s' : '1s' }}>
+            <div style={{ left: 8, right: 8, top: 8, height: 5, background: 'rgba(255,255,255,.12)' }} />
+            <div style={{ left: 10, top: 34, width: '58%', background: '#4d8dff', opacity: 0.8 }} />
+            <div style={{ left: 10, top: 50, width: '44%', background: 'rgba(255,255,255,.28)' }} />
+            <div style={{ left: 10, top: 66, width: '66%', background: 'rgba(255,255,255,.28)' }} />
+            <div style={{ left: 10, top: 82, width: '36%', background: '#8fd19e', opacity: 0.8 }} />
+          </div>
+          <div className="lid-back" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Panel({ step, awake, setAwake, agents, setAgents }) {
   const [settings, setSettings] = useState(false)
   const gray = '#5c5c62'
+  const codex = !awake ? [gray, '0 working'] : step === 4 ? [AMBER, '1 waiting'] : [BLUE, '2 working']
+  const claude = !awake ? [gray, '0 working'] : step < 3 ? [BLUE, '1 working'] : [AMBER, '1 waiting']
 
   return (
-    <div role="group" aria-label="WakeGuard menu bar panel preview" className="panel">
+    <div role="group" aria-label="WakeGuard menu bar panel preview" className="panel" style={{ flex: '1 1 260px', maxWidth: 300, margin: 0 }}>
       <div className="row" style={{ gap: 12 }}>
         <img src={ICON} alt="" width="30" height="30" style={{ borderRadius: 8, display: 'block' }} />
         <span style={{ fontWeight: 700, fontSize: 15, flex: 1 }}>WakeGuard</span>
@@ -104,8 +149,8 @@ function Panel() {
       <div className="hr" />
       <div style={{ fontWeight: 700, marginBottom: 8 }}>Agents</div>
       <div className="stack" style={{ gap: 7 }}>
-        <div className="between"><span>Codex</span><span className="row" style={{ gap: 7, color: '#b4b4ba' }}><Dot size={7} color={awake ? BLUE : gray} className="pulse" />{awake ? '2 working' : '0 working'}</span></div>
-        <div className="between"><span>Claude Code</span><span className="row" style={{ gap: 7, color: '#b4b4ba' }}><Dot size={7} color={awake ? AMBER : gray} />{awake ? '1 waiting' : '0 working'}</span></div>
+        <div className="between"><span>Codex</span><span className="row" style={{ gap: 7, color: '#b4b4ba' }}><Dot size={7} color={codex[0]} className="pulse" />{codex[1]}</span></div>
+        <div className="between"><span>Claude Code</span><span className="row" style={{ gap: 7, color: '#b4b4ba' }}><Dot size={7} color={claude[0]} />{claude[1]}</span></div>
       </div>
 
       <div className="hr" />
@@ -146,7 +191,7 @@ function Agents() {
   }, [paused])
 
   return (
-    <section id="how" aria-labelledby="agents-title" className="dark" style={{ scrollMarginTop: 60 }}>
+    <section id="agents" aria-labelledby="agents-title" className="dark" style={{ scrollMarginTop: 60 }}>
       <div className="wrap" style={{ paddingTop: 'clamp(72px,10vw,136px)', paddingBottom: 'clamp(72px,10vw,136px)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,380px),1fr))', gap: '24px 64px', alignItems: 'end' }}>
           <div className="stack" style={{ gap: 18 }}>
@@ -183,11 +228,6 @@ function Agents() {
           ))}
         </div>
 
-        <div className="grid3" style={{ marginTop: 32, gap: '16px 32px', fontSize: 14.5, lineHeight: 1.55, color: '#a9aeb8' }}>
-          <Reveal as="p" delay={0} style={{ margin: 0 }}><strong style={{ color: '#f2f3f5', fontWeight: 600 }}>Local sessions only.</strong> Codex detection depends on its local session format. Claude Code requires a one-time hook connection. Claude chat and Cowork aren’t supported.</Reveal>
-          <Reveal as="p" delay={90} style={{ margin: 0 }}><strong style={{ color: '#f2f3f5', fontWeight: 600 }}>Closed-lid work.</strong> Designed to keep work running with the lid closed, subject to your power settings and safety limits.</Reveal>
-          <Reveal as="p" delay={180} style={{ margin: 0 }}><strong style={{ color: '#f2f3f5', fontWeight: 600 }}>You stay in charge.</strong> WakeGuard only manages sleep. Permission requests from your agents still wait for you.</Reveal>
-        </div>
       </div>
     </section>
   )
@@ -234,22 +274,12 @@ const SAFETY = [
   ['Time limit', '1 h 14 min left', 'Stops when the limit expires'],
 ]
 
-const STEPS = [
-  ['Drag to Applications', 'Move WakeGuard into your Applications folder, then open it from there.'],
-  ['Approve the system helper', 'A one-time native macOS administrator prompt installs the helper WakeGuard uses to manage sleep.'],
-  ['Choose a mode and start', 'Pick Manual or Until agents finish in the menu bar. Connect Claude Code once to include its tasks.'],
-]
-
 const SUMMARY = [
   [{ background: '#3d8bff' }, 'Kept awake', '2 h 38 min'],
   [{ border: '1px solid #6b6b72' }, 'WakeGuard inactive', '0 min', '#c4c4ca'],
   [{ background: '#8e8e96' }, 'System sleep', '31 min'],
   [{ background: AMBER }, 'Unobserved time', '3 min'],
 ]
-
-const SetupRow = ({ label, value }) => (
-  <div className="between" style={{ alignItems: 'center' }}><span>{label}</span><span className="chip">{value}</span></div>
-)
 
 const PLUGIN_DOCS_URL = `${SOURCE_URL}/blob/main/docs/plugins.md`
 
@@ -264,19 +294,6 @@ const PLUGINS = [
     icon: <span className="pl-icon"><span style={{ position: 'relative', width: 16, height: 12, borderRadius: 3, border: '1.5px solid #1462e0', display: 'block' }}><Dot size={6} color="#1462e0" className="pl-badge-dot" /></span></span>,
     perms: [['Session events', 'Start and stop'], ['macOS notifications', 'Post notifications'], ['Network', 'None']],
   },
-]
-
-const IDEAS = [
-  ['Slack update', 'HTTPS', 'Post to a channel when a session starts or stops, using a webhook you provide.', <span style={{ fontWeight: 700, fontSize: 15, color: '#1462e0' }}>#</span>],
-  ['Phone push', 'HTTPS', 'Get a push notification on your phone when an agent is waiting for input.', <span style={{ width: 11, height: 17, borderRadius: 3, border: '1.5px solid #1462e0', display: 'block' }} />],
-  ['Desk light', 'Local network', 'Turn a smart lamp amber while agents wait for you, via your home hub.', <span style={{ width: 14, height: 14, borderRadius: '50%', background: AMBER, boxShadow: '0 0 0 3px rgba(242,184,75,.25)', display: 'block' }} />],
-  ['Run a Shortcut', 'Local', 'Trigger a macOS Shortcut when a session stops, like pausing music or logging time.', <span style={{ width: 14, height: 14, transform: 'rotate(45deg)', borderRadius: 3, border: '1.5px solid #1462e0', display: 'block' }} />],
-]
-
-const PLUGIN_STEPS = [
-  ['Install.', 'The plugin is added but stays disabled.'],
-  ['Review permissions.', 'See what it can read and do before it runs.'],
-  ['Enable.', 'Turn it on yourself, and off again at any time.'],
 ]
 
 // Plugin status per id: 'none' → 'busy' (installing) → 'off' → 'on'.
@@ -388,8 +405,7 @@ function PluginsPreview() {
           </div>
         </div>
       </div>
-      <div className="between" style={{ flexWrap: 'wrap', padding: '0 4px', fontSize: 12.5, color: '#6a707a' }}>
-        <span>Interactive preview · illustrative sample data</span>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 4px' }}>
         <button type="button" onClick={reset} className="pl-reset">Reset preview</button>
       </div>
     </>
@@ -404,34 +420,11 @@ function Plugins() {
           <Reveal as="span" className="eyebrow">Plugins</Reveal>
           <Reveal as="h2" id="plugins-title" className="h2 words"><Words>Extend WakeGuard with plugins.</Words></Reveal>
           <Reveal as="p" delay={250} className="lead">Add agent status, session notifications, or build your own integration.</Reveal>
-          <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', fontSize: 15, lineHeight: 1.5, color: '#3d424b' }}>
-            {PLUGIN_STEPS.map(([title, text], i) => (
-              <Reveal as="li" key={title} delay={350 + i * 110} className="slide" style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(20,22,26,.08)', borderBottom: i === 2 ? '1px solid rgba(20,22,26,.08)' : 0 }}>
-                <span className="tnum" style={{ color: '#1462e0', fontWeight: 600 }}>{i + 1}</span>
-                <span><strong style={{ fontWeight: 600, color: '#14161a' }}>{title}</strong> {text}</span>
-              </Reveal>
-            ))}
-          </ul>
-          <Reveal as="p" delay={700} className="muted" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, textWrap: 'pretty' }}>Plugins add information and notifications. They don’t control sleep prevention. Optional integrations can make HTTPS requests, which are listed in their permissions.</Reveal>
+          <Reveal as="p" delay={350} className="muted" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, textWrap: 'pretty' }}>Installed plugins stay disabled until you enable them. They don’t control sleep prevention. Optional integrations can make HTTPS requests.</Reveal>
         </div>
         <Reveal delay={200} className="stack" style={{ flex: '1.5 1 460px', minWidth: 0, maxWidth: '100%', gap: 12 }}>
           <PluginsPreview />
         </Reveal>
-      </div>
-
-      <div className="stack" style={{ marginTop: 'clamp(40px,6vw,72px)', gap: 20 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px 24px' }}>
-          <Reveal as="h3" className="words" style={{ margin: 0, fontSize: 'clamp(22px,2.4vw,28px)', letterSpacing: '-.02em' }}><Words>Ideas to build next.</Words></Reveal>
-          <Reveal as="span" delay={150} className="muted" style={{ fontSize: 13.5 }}>Not available yet. Each one is a small plugin away.</Reveal>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 12 }}>
-          {IDEAS.map(([name, tag, text, glyph], i) => (
-            <Reveal as="article" key={name} delay={i * 100} className="card lift pl-idea">
-              <div className="between" style={{ alignItems: 'center' }}><span aria-hidden="true" className="pl-icon">{glyph}</span><span className="pl-tag">{tag}</span></div>
-              <div className="stack" style={{ gap: 6 }}><span style={{ fontWeight: 650, fontSize: 16 }}>{name}</span><span style={{ fontSize: 14, lineHeight: 1.5, color: '#555b65', textWrap: 'pretty' }}>{text}</span></div>
-            </Reveal>
-          ))}
-        </div>
       </div>
 
       <Reveal className="card pl-dev">
@@ -454,6 +447,151 @@ function Plugins() {
   )
 }
 
+const KEYS = ['⌃ Control', '⌘ Command', 'Q']
+
+const HOW_STEPS = [
+  ['Start your agent task', 'Give Codex the task on your Mac.'],
+  ['Start a WakeGuard session', 'Choose Manual or Until agents finish in the menu bar.'],
+  ['Lock, then close the lid', 'Lock your Mac with Control–Command–Q, then close the lid.', true],
+  ['Follow along on your phone', 'Follow progress and respond through Codex on your phone.'],
+]
+
+const MiniWindow = ({ bar, children }) => (
+  <div className="mini-win">
+    <div className="mini-bar">{bar}</div>
+    {children}
+  </div>
+)
+
+function Hero() {
+  const [step, replay] = useDemo()
+  const [awake, setAwake] = useState(true)
+  const [agents, setAgents] = useState(true)
+  // Hero visual tilts back and drifts up as it scrolls away.
+  const heroRef = useScrollVar(r => -r.top / r.height)
+
+  return (
+    <section aria-labelledby="hero-title" className="wrap hero">
+      <div className="stack" style={{ flex: '1 1 360px', minWidth: 0, maxWidth: 500, gap: 26 }}>
+        <Reveal className="stack" style={{ alignItems: 'flex-start', gap: 6 }}>
+          <LidStage step={step} />
+          <span className="lid-chip">
+            <img src={ICON} alt="" width="30" height="30" style={{ borderRadius: 8, display: 'block', flex: 'none' }} />
+            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+              <span className="row" style={{ gap: 8, fontSize: 14, fontWeight: 650 }}>
+                <Dot color={awake ? '#1462e0' : '#a3a9b3'} className={awake && step > 0 ? 'pulse' : ''} />
+                {!awake ? 'Off' : agents ? 'Awake · Until agents finish' : 'Awake · Manual'}
+              </span>
+              <span key={step === 0} className="lid-label">{step === 0 ? 'Lid open' : 'Lid closed · Codex keeps working'}</span>
+            </span>
+          </span>
+        </Reveal>
+        <Reveal delay={80} className="pill"><span className="beta">Beta</span>{RELEASE} · Free and open source</Reveal>
+        <Reveal as="h1" id="hero-title" className="h1 words" delay={140}><Words>Full computer use.</Words><span style={{ color: '#1462e0' }}><Words from={3}>Lid closed.</Words></span></Reveal>
+        <Reveal as="p" delay={480} style={{ margin: 0, fontSize: 'clamp(18px,1.6vw,21px)', lineHeight: 1.5, color: '#4a505a', textWrap: 'pretty', maxWidth: '30em' }}>Keep your Mac awake while Codex works across desktop apps, the browser and terminal—even with the lid closed.</Reveal>
+        <Reveal className="row" delay={600} style={{ flexWrap: 'wrap', gap: 14 }}>
+          <a href={DOWNLOAD_URL} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>Download for macOS</a>
+          <a href="#how" className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>See how it works</a>
+        </Reveal>
+        <Reveal className="stack" delay={700} style={{ gap: 10 }}>
+          <span style={{ fontSize: 14, color: '#3d424b', fontWeight: 550 }}>Apple Silicon · macOS 13+</span>
+          <p className="info-note"><span aria-hidden="true" className="info-i">i</span><span>This beta isn’t notarized by Apple, so macOS asks you to confirm the first launch. <a href={SOURCE_URL} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Installation instructions</a></span></p>
+        </Reveal>
+      </div>
+
+      <Reveal ref={heroRef} delay={250} className="hero-visual" style={{ flex: '1 1 400px', minWidth: 0, maxWidth: 520, marginLeft: 'auto' }}>
+        <div role="group" aria-label="WakeGuard menu bar panel" className="frame" style={{ padding: 'clamp(52px,6vw,60px) clamp(14px,2.5vw,26px) clamp(20px,3vw,28px)', display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center', justifyContent: 'center' }}>
+          <div aria-hidden="true" className="menubar">
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 22, borderRadius: 6, background: 'rgba(20,22,26,.14)' }}>
+              <svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.2" fill="none" stroke="#1d2026" strokeWidth="1.6" /><SunRays stroke="#1d2026" width="1.6" /></svg>
+            </span>
+            <span key={step} className="tick">{DEMO_TIMES[step]}</span>
+          </div>
+          <Panel step={step} awake={awake} setAwake={setAwake} agents={agents} setAgents={setAgents} />
+        </div>
+        <div style={{ margin: '12px 4px 0', display: 'flex', justifyContent: 'flex-end' }}>
+          <button type="button" onClick={replay} className="pl-reset">Replay</button>
+        </div>
+      </Reveal>
+    </section>
+  )
+}
+
+function Capabilities() {
+  return (
+    <section id="capabilities" aria-labelledby="cap-title" className="wrap" style={{ paddingBottom: 'clamp(72px,10vw,128px)', scrollMarginTop: 60 }}>
+      <div className="stack" style={{ gap: 16, marginBottom: 'clamp(36px,5vw,56px)' }}>
+        <Reveal as="span" className="eyebrow">With the lid closed</Reveal>
+        <Reveal as="h2" id="cap-title" className="h2 words"><Words>Codex keeps working across your Mac.</Words></Reveal>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 16 }}>
+        <Reveal as="article" delay={0} className="card lift cap">
+          <div aria-hidden="true" className="cap-illus">
+            <MiniWindow bar={<><Dot size={6} color="#d3d7de" /><Dot size={6} color="#d3d7de" /><Dot size={6} color="#d3d7de" /><span style={{ marginLeft: 6, fontSize: 11, color: '#5b616b' }}>Slack · #release</span></>}>
+              <div className="stack" style={{ padding: '8px 10px', gap: 7 }}>
+                {[['#c9d6ea', '70%'], ['#f2d6a8', '82%'], ['#c9e3cf', '56%']].map(([c, w], i) => (
+                  <div key={i} className="row cap-focus" style={{ gap: 7, '--i': i }}><span style={{ width: 14, height: 14, borderRadius: 4, background: c, flex: 'none' }} /><span style={{ height: 5, width: w, borderRadius: 3, background: '#e1e4e9' }} /></div>
+                ))}
+              </div>
+            </MiniWindow>
+          </div>
+          <div className="stack" style={{ gap: 8 }}>
+            <h3>Desktop apps</h3>
+            <p>Let Codex inspect and interact with supported Mac apps through Computer Use.</p>
+          </div>
+        </Reveal>
+        <Reveal as="article" delay={120} className="card lift cap">
+          <div aria-hidden="true" className="cap-illus">
+            <MiniWindow bar={<span className="mini-url">staging.example.app</span>}>
+              <div style={{ padding: '9px 10px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+                {[0, 1, 2].map(i => <span key={i} className="cap-shot" style={{ '--i': i }} />)}
+              </div>
+              <div style={{ padding: '0 10px 8px', fontSize: 10.5, color: '#5b616b' }}>Screenshot 3 of 3 captured</div>
+            </MiniWindow>
+          </div>
+          <div className="stack" style={{ gap: 8 }}>
+            <h3>Browser</h3>
+            <p>Keep testing websites, checking pages and capturing browser screenshots.</p>
+          </div>
+        </Reveal>
+        <Reveal as="article" delay={240} className="card lift cap">
+          <div aria-hidden="true" className="cap-illus cap-term">
+            <span className="pl-line" style={{ '--i': 0 }}><span style={{ color: '#7fb0ff' }}>$</span> npm run build</span>
+            <span className="pl-line" style={{ '--i': 1, color: '#8fd19e' }}>✓ 214 tests passed</span>
+            <span className="pl-line" style={{ '--i': 2 }}><span style={{ color: '#7fb0ff' }}>$</span> ssh deploy@staging ./release.sh</span>
+            <span className="pl-line cap-deploying" style={{ '--i': 3, color: '#8a909b' }}>Deploying<span>.</span><span>.</span><span>.</span></span>
+          </div>
+          <div className="stack" style={{ gap: 8 }}>
+            <h3>Terminal</h3>
+            <p>Keep builds, tests and SSH deployments running.</p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
+function HowItWorks() {
+  return (
+    <section id="how" aria-labelledby="how-title" style={{ borderTop: '1px solid rgba(20,22,26,.07)', background: '#fff', scrollMarginTop: 60 }}>
+      <div className="wrap" style={{ paddingTop: 'clamp(72px,9vw,120px)', paddingBottom: 'clamp(72px,9vw,120px)' }}>
+        <Reveal as="h2" id="how-title" className="h2 words" style={{ marginBottom: 'clamp(36px,5vw,56px)' }}><Words>Start it, lock it, close it.</Words></Reveal>
+        <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,220px),1fr))', gap: 'clamp(28px,3.5vw,40px)' }}>
+          {HOW_STEPS.map(([title, text, keys], i) => (
+            <Reveal as="li" key={title} delay={i * 130} className="step">
+              <span className="tnum" style={{ fontSize: 14, fontWeight: 600, color: '#1462e0' }}>0{i + 1}</span>
+              <h3 style={{ fontSize: 21 }}>{title}</h3>
+              <p>{text}</p>
+              {keys && <span aria-hidden="true" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{KEYS.map((k, j) => <span key={k} className="key" style={{ '--i': j }}>{k}</span>)}</span>}
+            </Reveal>
+          ))}
+        </ol>
+        <Reveal as="p" delay={300} style={{ margin: 'clamp(32px,4vw,48px) 0 0', paddingTop: 18, borderTop: '1px solid rgba(20,22,26,.08)', fontSize: 14.5, lineHeight: 1.55, color: '#4a505a' }}>Deployments still need their normal network access.</Reveal>
+      </div>
+    </section>
+  )
+}
+
 function useScrolled() {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -467,8 +605,6 @@ function useScrolled() {
 
 export default function App() {
   const scrolled = useScrolled()
-  // Hero visual tilts back and drifts up as it scrolls away.
-  const heroRef = useScrollVar(r => -r.top / r.height)
   // Download card zooms up to full size as it enters.
   // Bag illustration: backdrop drifts slower than the figure as it passes through view.
   const bagRef = useScrollVar((r, vh) => (vh - r.top) / (vh + r.height))
@@ -481,41 +617,22 @@ export default function App() {
           <a href="#top" aria-label="WakeGuard home" className="brand">
             <img src={ICON} alt="" width="28" height="28" style={{ borderRadius: 7, display: 'block' }} />
             <span>WakeGuard</span>
+            <span className="beta soft">Beta</span>
           </a>
           <div className="navlinks">
-            <a href="#features">Features</a>
+            <a href="#capabilities">Capabilities</a>
             <a href="#how">How it works</a>
           </div>
-          <a href="#download" className="btn-nav">Download for macOS</a>
+          <a href={DOWNLOAD_URL} className="btn-nav">Download for macOS</a>
         </nav>
       </header>
 
       <main id="top">
-        <section aria-labelledby="hero-title" className="wrap hero">
-          <div className="stack" style={{ gap: 28, maxWidth: 540 }}>
-            <Reveal className="pill"><Dot color="#1468f0" />Free and open source · Apple silicon</Reveal>
-            <Reveal as="h1" id="hero-title" className="h1 words" delay={80}><Words>Keep your Mac awake.</Words><span style={{ color: '#1462e0' }}><Words from={4}>Let your agents finish.</Words></span></Reveal>
-            <Reveal as="p" delay={520} style={{ margin: 0, fontSize: 'clamp(18px,1.6vw,21px)', lineHeight: 1.5, color: '#4a505a', textWrap: 'pretty', maxWidth: '30em' }}>Control sleep from your menu bar, follow local agent activity and let your Mac rest when the work is done.</Reveal>
-            <Reveal className="row" delay={640} style={{ flexWrap: 'wrap', gap: '14px 20px' }}>
-              <a href="#download" className="btn-primary">Download for macOS</a>
-              <a href={SOURCE_URL} className="btn-secondary">View source on GitHub</a>
-              <span className="muted" style={{ fontSize: 14, flexBasis: '100%' }}>Apple silicon · macOS 13 or later</span>
-            </Reveal>
-          </div>
+        <Hero />
 
-          <Reveal ref={heroRef} delay={250} className="hero-visual">
-            <div className="frame">
-              <div aria-hidden="true" className="menubar">
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 22, borderRadius: 6, background: 'rgba(20,22,26,.14)' }}>
-                  <svg width="14" height="14" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.2" fill="none" stroke="#1d2026" strokeWidth="1.6" /><SunRays stroke="#1d2026" width="1.6" /></svg>
-                </span>
-                <span>Tue 16:24</span>
-              </div>
-              <Panel />
-            </div>
-            <p className="note" style={{ margin: '14px 4px 0', textAlign: 'right' }}>Interactive preview · illustrative sample data</p>
-          </Reveal>
-        </section>
+        <Capabilities />
+
+        <HowItWorks />
 
         <Agents />
 
@@ -537,7 +654,6 @@ export default function App() {
                 <span className="muted" style={{ fontSize: 13.5 }}>{hint}</span><span />
               </Reveal>
             ))}
-            <p className="note" style={{ marginTop: 6 }}>Illustrative sample data</p>
           </Reveal>
 
           <Reveal as="figure" ref={bagRef} className="bag" style={{ gridColumn: '1/-1' }}>
@@ -573,65 +689,12 @@ export default function App() {
                 <div className="between"><span>Codex</span><span className="row" style={{ gap: 8, color: '#3d4450' }}><Dot color="#1462e0" className="pulse" />2 working</span></div>
                 <div className="between"><span>Claude Code</span><span className="row" style={{ gap: 8, color: '#3d4450' }}><Dot color="#d99a1e" />1 waiting</span></div>
               </Reveal>
-              <span style={{ fontSize: 12.5, color: '#4f5662', marginTop: 4 }}>Illustrative sample data · subject to power settings and safety limits</span>
+              <span style={{ fontSize: 12.5, color: '#4f5662', marginTop: 4 }}>Subject to power settings and safety limits</span>
             </div>
           </Reveal>
         </section>
 
-        <section id="features" aria-labelledby="features-title" className="wrap" style={{ paddingTop: 'clamp(72px,10vw,136px)', paddingBottom: 'clamp(72px,10vw,136px)', scrollMarginTop: 60 }}>
-          <Reveal as="h2" id="features-title" className="h2 words" style={{ marginBottom: 'clamp(36px,5vw,56px)', maxWidth: '16em' }}><Words>Everything you need to stay awake. Nothing you don’t.</Words></Reveal>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 16 }}>
-            <Reveal as="article" delay={0} className="card lift">
-              <div aria-hidden="true" className="illus" style={{ gap: 10 }}>
-                <div className="row" style={{ gap: 8, fontSize: 15, fontWeight: 700 }}><Dot size={10} color="#e8a400" />Awake</div>
-                <div style={{ height: 32, borderRadius: 999, background: '#dfe3e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>Stop</div>
-              </div>
-              <div className="stack" style={{ gap: 8 }}>
-                <h3>Manual control</h3>
-                <p>Start and stop a keep-awake session from the menu bar.</p>
-              </div>
-            </Reveal>
-            <Reveal as="article" delay={120} className="card lift">
-              <div aria-hidden="true" className="illus" style={{ gap: 9, fontSize: 13.5 }}>
-                <SetupRow label="Run on" value="AC power" />
-                <SetupRow label="Battery limit" value="20%" />
-                <SetupRow label="Time limit" value="2 hours" />
-              </div>
-              <div className="stack" style={{ gap: 8 }}>
-                <h3>Safety limits</h3>
-                <p>Choose power adapter or battery, set a battery threshold and time limit. WakeGuard stops if the battery gets too low, the Mac gets too warm or time runs out.</p>
-              </div>
-            </Reveal>
-            <Reveal as="article" delay={240} className="card lift">
-              <div aria-hidden="true" className="illus" style={{ gap: 12 }}>
-                <div className="between" style={{ fontSize: 13.5 }}><span>Closed-lid duration</span><span style={{ fontWeight: 600 }}>3 h 12 min</span></div>
-                <div className="bar grow" style={{ height: 10, borderRadius: 5 }}><span style={{ flex: 158, background: '#1462e0' }} /><span style={{ flex: 31, background: '#9aa3b2' }} /><span style={{ flex: 3, background: '#d3d8e0' }} /></div>
-                <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#555b65' }}><span>Kept awake</span><span>System sleep</span></div>
-              </div>
-              <div className="stack" style={{ gap: 8 }}>
-                <h3>Session summaries</h3>
-                <p>Reopen the lid to see what happened while you were away.</p>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
         <Plugins />
-
-        <section aria-labelledby="setup-title" style={{ borderTop: '1px solid rgba(20,22,26,.07)', borderBottom: '1px solid rgba(20,22,26,.07)', background: '#fff' }}>
-          <div className="wrap" style={{ paddingTop: 'clamp(72px,9vw,120px)', paddingBottom: 'clamp(72px,9vw,120px)' }}>
-            <Reveal as="h2" id="setup-title" className="h2 words" style={{ marginBottom: 'clamp(36px,5vw,56px)' }}><Words>Set up in three steps.</Words></Reveal>
-            <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 'clamp(28px,4vw,48px)' }}>
-              {STEPS.map(([title, text], i) => (
-                <Reveal as="li" key={title} delay={i * 140} className="step">
-                  <span className="tnum" style={{ fontSize: 14, fontWeight: 600, color: '#1462e0' }}>0{i + 1}</span>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </Reveal>
-              ))}
-            </ol>
-          </div>
-        </section>
 
         <section aria-labelledby="summary-title" className="wrap split" style={{ paddingTop: 'clamp(72px,10vw,136px)', paddingBottom: 'clamp(72px,10vw,136px)' }}>
           <div className="stack" style={{ gap: 20, maxWidth: 480 }}>
@@ -654,7 +717,6 @@ export default function App() {
                 <Reveal key={label} delay={500 + i * 100} className="summary-row slide"><dt><span className="legend" style={swatch} />{label}</dt><dd style={{ color }}>{value}</dd></Reveal>
               ))}
             </dl>
-            <p style={{ margin: '12px 0 0', fontSize: 12.5, color: '#9a9aa0' }}>Illustrative sample data</p>
           </Reveal>
         </section>
 
@@ -664,7 +726,6 @@ export default function App() {
               <div className="stack" style={{ gap: 16 }}>
                 <Reveal as="span" className="eyebrow">Open source · Local · Private</Reveal>
                 <Reveal as="h2" id="privacy-title" className="h2 words" style={{ fontSize: 'clamp(30px,3.8vw,44px)' }}><Words>Open source. Runs entirely on your Mac.</Words></Reveal>
-                <Reveal as="p" delay={250} style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#b3b8c2', textWrap: 'pretty', maxWidth: '28em' }}>Every line of WakeGuard is public. Read how it manages sleep, check what it records and build it yourself.</Reveal>
                 <Reveal as="a" delay={350} href={SOURCE_URL} className="link-arrow">View source on GitHub →</Reveal>
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', fontSize: 16, lineHeight: 1.5 }}>
@@ -678,22 +739,20 @@ export default function App() {
               <div className="row" style={{ gap: 18 }}>
                 <img src={ICON} alt="" width="64" height="64" style={{ borderRadius: 15, display: 'block', boxShadow: '0 10px 24px -10px rgba(40,120,255,.6)' }} />
                 <div className="stack" style={{ gap: 4 }}>
-                  <span style={{ fontSize: 'clamp(22px,2.4vw,28px)', fontWeight: 700, letterSpacing: '-.02em' }}>Get WakeGuard</span>
-                  <span style={{ fontSize: 14, color: '#a9aeb8' }}>Apple silicon · macOS 13 or later</span>
+                  <span style={{ fontSize: 'clamp(22px,2.4vw,28px)', fontWeight: 700, letterSpacing: '-.02em' }}>Get WakeGuard beta</span>
+                  <span style={{ fontSize: 14, color: '#a9aeb8' }}>Apple Silicon · macOS 13+</span>
+                  <span style={{ fontSize: 13, color: '#a9aeb8' }}>{RELEASE} · Not notarized · <a href={RELEASE_URL} style={{ color: '#7fb0ff' }}>Release notes</a></span>
                 </div>
               </div>
-              <div className="stack" style={{ gap: 10, maxWidth: 320 }}>
-                <a href={DOWNLOAD_URL} className="btn-cta">Download for macOS</a>
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#a9aeb8' }}>Beta 1.3.4 · Not notarized; macOS may block opening. <a href={`${SOURCE_URL}#installation`} style={{ color: '#7fb0ff' }}>Installation notes</a></p>
-              </div>
+              <a href={DOWNLOAD_URL} className="btn-cta" style={{ whiteSpace: 'nowrap' }}>Download for macOS</a>
             </Reveal>
           </div>
         </section>
       </main>
 
       <footer className="wrap muted" style={{ paddingBottom: 40, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-        <span style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}><span>© 2026 WakeGuard · Open source</span><a href={SOURCE_URL} style={{ color: '#3d424b' }}>Source code</a></span>
-        <span>Closed-lid operation depends on power settings and safety limits.</span>
+        <span style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}><span>© 2026 WakeGuard · Open source</span><a href={SOURCE_URL} style={{ color: '#3d424b' }}>Source code</a><a href={RELEASE_URL} style={{ color: '#3d424b' }}>Release</a></span>
+        <span>Beta. Closed-lid operation depends on power settings, safety limits and your Codex setup.</span>
       </footer>
     </div>
   )
